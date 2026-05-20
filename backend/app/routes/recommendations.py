@@ -1,74 +1,78 @@
 from fastapi import APIRouter, Query
+from typing import List
 
+from app.routes.books import books_db
 from app.services.recommendation_service import calculate_book_score
-from app.schemas.recommendation_schema import RecommendationResponseSchema
-
 
 router = APIRouter(
     prefix="/api/v1/recommendations",
     tags=["Recommendations"]
 )
 
-# Base de datos temporal
-books_db = [
-    {
-        "id": 1,
-        "title": "Maus",
-        "author": "Art Spiegelman",
-        "theme": "war",
-        "recommended_age": 15,
-        "available": True
-    },
-    {
-        "id": 2,
-        "title": "Harry Potter",
-        "author": "J.K. Rowling",
-        "theme": "magic",
-        "recommended_age": 12,
-        "available": True
-    },
-    {
-        "id": 3,
-        "title": "Un día en la vida",
-        "author": "Manlio Argueta",
-        "theme": "social conflict",
-        "recommended_age": 16,
-        "available": False
-    }
-]
 
+@router.get("/")
+def get_recommendations(
 
-@router.get(
-    "/",
-    response_model=RecommendationResponseSchema,
-    status_code=200
-)
-def recommend_books(
-    keyword: str = Query(None, description="Palabra clave"),
-    recommended_age: int = Query(None, ge=5, le=18)
+    keyword: str | None = Query(
+        None,
+        description="Palabra clave"
+    ),
+
+    author: str | None = Query(
+        None,
+        description="Autor"
+    ),
+
+    language: str | None = Query(
+        None,
+        description="Idioma"
+    ),
+
+    fiction: bool | None = Query(
+        None,
+        description="Ficción o no ficción"
+    ),
+
+    reading_level: str | None = Query(
+        None,
+        description="Nivel lector"
+    ),
+
+    theme: str | None = Query(
+        None,
+        description="Tema literario"
+    )
+
 ):
 
-    scored_books = []
+    filters = {
+        "keyword": keyword,
+        "author": author,
+        "language": language,
+        "fiction": fiction,
+        "reading_level": reading_level,
+        "theme": theme
+    }
+
+    recommendations = []
 
     for book in books_db:
 
         score = calculate_book_score(
             book,
-            keyword,
-            recommended_age
+            filters
         )
 
         if score > 0:
-            scored_books.append({
+
+            recommendations.append({
                 "book": book,
                 "score": score
             })
 
-    scored_books.sort(
+    recommendations.sort(
         key=lambda x: x["score"],
         reverse=True
     )
 
-    return {
-        "recommendations": scored_books
-    }
+    return recommendations

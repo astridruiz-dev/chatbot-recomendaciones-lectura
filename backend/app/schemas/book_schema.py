@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class BookSchema(BaseModel):
@@ -39,10 +39,10 @@ class BookSchema(BaseModel):
         description="Indica si el libro es ficción"
     )
 
-    themes: list[str] = Field(
-        ...,
-        description="Temas principales"
-    )
+    themes: List[str] = Field(
+    ...,
+    description="Temas principales"
+)
 
     reading_level: str = Field(
         ...,

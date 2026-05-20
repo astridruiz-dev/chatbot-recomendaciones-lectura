@@ -48,32 +48,49 @@ books_db = [
 )
 def get_books():
 
-  return books_db
+    return books_db
+
+
 # Obtener libro por ID
 @router.get(
     "/{book_id}",
     response_model=BookSchema,
-    status_code=200
+    status_code=200,
+    responses={
+        404: {
+            "description": "Libro no encontrado"
+        },
+        500: {
+            "description": "Error interno del servidor"
+        }
+    }
 )
-
 def get_book(book_id: int):
 
     for book in books_db:
 
         if book["id"] == book_id:
-
             return book
 
     raise HTTPException(
-    status_code=404,
-    detail="Libro no encontrado"
-)
+        status_code=404,
+        detail="Libro no encontrado"
+    )
+
 
 # Buscar libros
 @router.get(
     "/search/",
     response_model=List[BookSchema],
-    status_code=200
+    status_code=200,
+    responses={
+        400: {
+            "description": "Solicitud inválida"
+        },
+        500: {
+            "description": "Error interno del servidor"
+        }
+    }
 )
 def search_books(
 
@@ -107,50 +124,119 @@ def search_books(
     reading_level: str | None = Query(
         None,
         description="Nivel lector"
+    ),
+
+    publication_year: int | None = Query(
+        None,
+        ge=-3000,
+        le=2030,
+        description="Año de publicación o período histórico"
+    ),
+
+    theme: str | None = Query(
+        None,
+        description="Tema literario"
+    ),
+
+    available: bool | None = Query(
+        None,
+        description="Disponibilidad del libro"
     )
+
 ):
+
+    # Validar que exista al menos un filtro
+    if not any([
+        keyword,
+        author,
+        language,
+        fiction is not None,
+        recommended_age,
+        reading_level,
+        publication_year,
+        theme,
+        available is not None
+    ]):
+
+        raise HTTPException(
+            status_code=400,
+            detail="Debe proporcionar al menos un filtro de búsqueda"
+        )
 
     results = []
 
     for book in books_db:
 
+        # Keyword
         if keyword:
 
             keyword_match = (
                 keyword.lower() in book["title"].lower()
                 or keyword.lower() in book["summary"].lower()
                 or any(
-                    keyword.lower() in theme.lower()
-                    for theme in book["themes"]
+                    keyword.lower() in t.lower()
+                    for t in book["themes"]
                 )
             )
 
             if not keyword_match:
                 continue
 
+        # Author
         if author:
 
             if author.lower() not in book["author"].lower():
                 continue
 
+        # Language
         if language:
 
             if language.lower() != book["language"].lower():
                 continue
 
+        # Fiction
         if fiction is not None:
 
             if fiction != book["fiction"]:
                 continue
 
+        # Recommended age
         if recommended_age:
 
-            if recommended_age != book["recommended_age"]:
+            age_difference = abs(
+                book["recommended_age"] - recommended_age
+            )
+
+            if age_difference > 1:
                 continue
 
+        # Reading level
         if reading_level:
 
             if reading_level.lower() != book["reading_level"].lower():
+                continue
+
+        # Publication year
+        if publication_year:
+
+            if publication_year != book["publication_year"]:
+                continue
+
+        # Theme
+        if theme:
+
+            theme_match = any(
+                theme.lower() in t.lower()
+                for t in book["themes"]
+            )
+
+            if not theme_match:
+                continue
+
+        # Availability
+        if available is not None:
+
+            if available != book["available"]:
                 continue
 
         results.append(book)
