@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Importar routers
 from app.routes.books import router as books_router
@@ -12,6 +13,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Configuración CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Ruta principal
 @app.get(
     "/",
@@ -23,6 +35,7 @@ def root():
         "message": "Library Chatbot API activa"
     }
 
+# Endpoint health
 @app.get(
     "/health",
     tags=["System"]
