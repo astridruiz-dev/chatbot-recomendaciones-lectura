@@ -5,11 +5,16 @@ from app.schemas.chat_schema import (
     ChatResponseSchema
 )
 
+from app.routes.books import books_db
+from app.services.recommendation_service import calculate_book_score
+
+
 router = APIRouter(
     prefix="/api/v1/chat",
     tags=["Chat"]
 )
 
+conversation_history = []
 
 @router.post(
     "/",
@@ -19,22 +24,66 @@ router = APIRouter(
 def chat_endpoint(request: ChatRequestSchema):
 
     user_message = request.message.lower()
+    filters = {
+        "keyword": None,
+        "author": None,
+        "language": None,
+        "fiction": None,
+        "reading_level": None,
+        "theme": None
+    }
 
-    if "guerra" in user_message:
+    # Detectar temas simples
+    if "war" in user_message or "guerra" in user_message:
+        filters["theme"] = "War"
 
-        return {
-            "response":
-            "Te recomiendo explorar libros relacionados con guerra y memoria histórica."
-        }
+    if "violence" in user_message or "violencia" in user_message:
+        filters["theme"] = "Violence"
 
-    if "ficción" in user_message:
+    if "memory" in user_message or "memoria" in user_message:
+        filters["theme"] = "Memory"
 
-        return {
-            "response":
-            "La biblioteca tiene varias opciones de ficción disponibles."
-        }
+    recommendations = []
+
+    for book in books_db:
+        score = calculate_book_score(book, filters)
+        if score > 0:
+            recommendations.append({
+                "title": book["title"],
+                "score": score
+            })
+
+    recommendations.sort(
+        key=lambda x: x["score"],
+        reverse=True
+    )
+
+    if recommendations:
+        books_text = ", ".join([book["title"] for book in recommendations])
+        bot_response = (
+            f"Según tus intereses, podría gustarte: "
+            f"{books_text}."
+        )
+
+        conversation_history.append({
+            "user": request.message,
+            "bot": bot_response
+        })
+
+        return {"response": bot_response}
+
+    # No recommendations found
+    bot_response = (
+        "No encontré una coincidencia exacta, "
+        "pero puedes intentar buscar por temas o autores."
+    )
+
+    conversation_history.append({
+        "user": request.message,
+        "bot": bot_response
+    })
 
     return {
-        "response":
-        "No encontré una recomendación específica todavía."
+        "response": bot_response
     }
+

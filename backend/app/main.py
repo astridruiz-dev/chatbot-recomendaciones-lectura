@@ -23,6 +23,16 @@ def root():
         "message": "Library Chatbot API activa"
     }
 
+@app.get(
+    "/health",
+    tags=["System"]
+)
+def health_check():
+
+    return {
+        "status": "ok"
+    }
+
 # Conectar routers
 app.include_router(books_router)
 app.include_router(recommendations_router)
