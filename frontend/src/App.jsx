@@ -1,15 +1,35 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 
 function App() {
 
   const [message, setMessage] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const [messages, setMessages] = useState([
-    {
-      sender: "bot",
-      text: "Hola 👋 ¿Qué tipo de libros te gustaría leer?"
-    }
-  ])
+
+ const [messages, setMessages] = useState([
+  {
+    sender: "bot",
+    text: `¡Hola! 👋
+
+Estoy aquí para ayudarte a descubrir libros que realmente puedan interesarte. 📚
+
+Puedes probar mensajes como:
+
+📖 Me gustan las novelas históricas
+🕵️ Quiero libros de misterio
+⚔️ Recomiéndame lecturas sobre guerra
+
+¿Qué te gustaría leer hoy?`
+  }
+])
+
+  const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({
+    behavior: "smooth"
+  })
+}, [messages])
 
   const sendMessage = async () => {
 
@@ -26,6 +46,7 @@ function App() {
     const currentMessage = message
 
     setMessage("")
+    setLoading(true)
 
     try {
 
@@ -45,11 +66,13 @@ function App() {
       const data = await response.json()
 
       const botMessage = {
-        sender: "bot",
-        text: data.response
-      }
+          sender: "bot",
+          text: data.response,
+          books: data.books || []
+        }
 
       setMessages((prev) => [...prev, botMessage])
+      setLoading(false)
 
     } catch (error) {
 
@@ -59,6 +82,7 @@ function App() {
       }
 
       setMessages((prev) => [...prev, errorMessage])
+      setLoading(false)
 
     }
 
@@ -134,39 +158,115 @@ function App() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto space-y-6">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex mb-6 ${
+                  msg.sender === "user"
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
+              >
+                <div
+            className={`
+              px-5 py-4 rounded-2xl shadow-md
+              ${
+                msg.sender === "user"
+                  ? "max-w-xl"
+                  : "max-w-2xl"
+              }
 
-         {
-  messages.map((msg, index) => (
+              ${
+                msg.sender === "user"
+                  ? "bg-violet-600 text-white rounded-tr-sm"
+                  : "bg-violet-100 text-slate-800 rounded-tl-sm"
+              }
+            `}
+          >
 
-    <div
-      key={index}
-      className={`flex mb-4 ${
-        msg.sender === "user"
-          ? "justify-end"
-          : "justify-start"
-      }`}
-    >
+            <div
+              className={`
+                text-xs font-semibold mb-2
+                ${
+                  msg.sender === "user"
+                    ? "text-violet-100"
+                    : "text-violet-700"
+                }
+              `}
+            >
+              {msg.sender === "user" ? "Tú" : "Asistente"}
+            </div>
+
+            <div className="whitespace-pre-line">
+              {msg.text}
+
+              {msg.books?.length > 0 && (
+
+  <div className="mt-4 space-y-3">
+
+    {msg.books.map((book, index) => (
 
       <div
-        className={`
-          px-5 py-4 rounded-2xl max-w-xl shadow-sm
-          ${
-            msg.sender === "user"
-              ? "bg-violet-600 text-white rounded-tr-sm"
-              : "bg-violet-100 text-slate-800 rounded-tl-sm"
-          }
-        `}
+        key={index}
+        className="
+          bg-white
+          border
+          border-violet-200
+          rounded-xl
+          p-4
+          shadow-sm
+        "
       >
 
-        {msg.text}
+        <h3 className="font-semibold text-slate-800">
+          {book.title}
+        </h3>
+
+        <p className="text-sm text-slate-600">
+          {book.author}
+        </p>
+
+        <p className="text-sm text-slate-500 mt-1">
+          Nivel lector: {book.reading_level}
+        </p>
+
+        <p className="text-sm text-slate-500">
+          Temas: {book.themes.join(", ")}
+        </p>
 
       </div>
 
-    </div>
+    ))}
 
-  ))
-}  
-   
+  </div>
+
+)}
+                </div>
+
+            </div>
+
+              </div>
+            ))}
+
+            <div ref={messagesEndRef}></div>
+
+            {loading && (
+              <div className="flex justify-start">
+                <div
+                  className="
+                    bg-violet-100
+                    text-slate-700
+                    px-5
+                    py-4
+                    rounded-2xl
+                    rounded-tl-sm
+                    shadow-md
+                  "
+                >
+                  Pensando...
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input */}
@@ -174,24 +274,29 @@ function App() {
           <div className="mt-6 flex gap-4">
 
             <input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              type="text"
-              placeholder="Escribe tu mensaje..."
-              className="
-                flex-1
-                bg-[#F5F3FF]
-                border border-slate-200
-                rounded-2xl
-                px-5
-                py-4
-                text-slate-700
-                placeholder-slate-400
-                focus:outline-none
-                focus:ring-2
-                focus:ring-violet-500
-              "
-            />
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    sendMessage()
+                  }
+                }}
+                type="text"
+                placeholder="Escribe tu mensaje..."
+                className="
+                  flex-1
+                  bg-[#F5F3FF]
+                  border border-slate-200
+                  rounded-2xl
+                  px-5
+                  py-4
+                  text-slate-700
+                  placeholder-slate-400
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-violet-500
+                "
+              />
 
             <button
               onClick={sendMessage}

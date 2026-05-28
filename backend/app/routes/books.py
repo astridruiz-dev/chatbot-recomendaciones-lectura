@@ -133,7 +133,7 @@ def search_books(
         description="Año de publicación o período histórico"
     ),
 
-    theme: str | None = Query(
+    themes: str | None = Query(
         None,
         description="Tema literario"
     ),
@@ -154,7 +154,7 @@ def search_books(
         recommended_age,
         reading_level,
         publication_year,
-        theme,
+        themes,
         available is not None
     ]):
 
@@ -222,11 +222,11 @@ def search_books(
             if publication_year != book["publication_year"]:
                 continue
 
-        # Theme
-        if theme:
+        # Themes
+        if themes:
 
             theme_match = any(
-                theme.lower() in t.lower()
+                themes.lower() in t.lower()
                 for t in book["themes"]
             )
 

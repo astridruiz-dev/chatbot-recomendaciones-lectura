@@ -14,3 +14,5 @@ class ChatRequestSchema(BaseModel):
 class ChatResponseSchema(BaseModel):
 
     response: str
+
+    books: list = []

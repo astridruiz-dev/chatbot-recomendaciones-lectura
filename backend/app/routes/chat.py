@@ -30,26 +30,29 @@ def chat_endpoint(request: ChatRequestSchema):
         "language": None,
         "fiction": None,
         "reading_level": None,
-        "theme": None
+        "themes": None
     }
 
     # Detectar temas simples
     if "war" in user_message or "guerra" in user_message:
-        filters["theme"] = "War"
+        filters["themes"] = "War"
 
     if "violence" in user_message or "violencia" in user_message:
-        filters["theme"] = "Violence"
+        filters["themes"] = "Violence"
 
     if "memory" in user_message or "memoria" in user_message:
-        filters["theme"] = "Memory"
+        filters["themes"] = "Memory"
 
     recommendations = []
 
     for book in books_db:
         score = calculate_book_score(book, filters)
         if score > 0:
-            recommendations.append({
+           recommendations.append({
                 "title": book["title"],
+                "author": book["author"],
+                "themes": book["themes"],
+                "reading_level": book["reading_level"],
                 "score": score
             })
 
@@ -70,7 +73,10 @@ def chat_endpoint(request: ChatRequestSchema):
             "bot": bot_response
         })
 
-        return {"response": bot_response}
+        return {
+    "response": bot_response,
+    "books": recommendations
+    }
 
     # No recommendations found
     bot_response = (
@@ -84,6 +90,7 @@ def chat_endpoint(request: ChatRequestSchema):
     })
 
     return {
-        "response": bot_response
+    "response": bot_response,
+    "books": []
     }
 
