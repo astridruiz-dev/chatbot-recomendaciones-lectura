@@ -24,14 +24,19 @@ conversation_history = []
 def chat_endpoint(request: ChatRequestSchema):
 
     user_message = request.message.lower()
+
+    language = request.language
+    reading_level = request.reading_level
+
     filters = {
-        "keyword": None,
-        "author": None,
-        "language": None,
-        "fiction": None,
-        "reading_level": None,
-        "themes": None
-    }
+
+    "keyword": None,
+    "author": None,
+    "language": language,
+    "fiction": None,
+    "reading_level": reading_level,
+    "themes": None
+}
 
     # Detectar temas simples
     if "war" in user_message or "guerra" in user_message:
@@ -49,24 +54,29 @@ def chat_endpoint(request: ChatRequestSchema):
         score = calculate_book_score(book, filters)
         if score > 0:
            recommendations.append({
-                "title": book["title"],
-                "author": book["author"],
-                "themes": book["themes"],
-                "reading_level": book["reading_level"],
-                "score": score
-            })
+            "title": book["title"],
+            "author": book["author"],
+            "themes": book["themes"],
+            "reading_level": book["reading_level"],
+            "score": score,
+            "available": book["available"]
+        })
 
     recommendations.sort(
         key=lambda x: x["score"],
         reverse=True
     )
-
     if recommendations:
         books_text = ", ".join([book["title"] for book in recommendations])
-        bot_response = (
-            f"Según tus intereses, podría gustarte: "
-            f"{books_text}."
-        )
+
+        if language == "English":
+            bot_response = (
+                f"Based on your interests, you might enjoy: {books_text}."
+            )
+        else:
+            bot_response = (
+                f"Según tus intereses, podría gustarte: {books_text}."
+            )
 
         conversation_history.append({
             "user": request.message,
@@ -74,15 +84,19 @@ def chat_endpoint(request: ChatRequestSchema):
         })
 
         return {
-    "response": bot_response,
-    "books": recommendations
-    }
+            "response": bot_response,
+            "books": recommendations
+        }
 
     # No recommendations found
-    bot_response = (
-        "No encontré una coincidencia exacta, "
-        "pero puedes intentar buscar por temas o autores."
-    )
+    if language == "English":
+        bot_response = (
+            "I couldn't find an exact match, but you can try searching by themes or authors."
+        )
+    else:
+        bot_response = (
+            "No encontré una coincidencia exacta, pero puedes intentar buscar por temas o autores."
+        )
 
     conversation_history.append({
         "user": request.message,
@@ -90,7 +104,7 @@ def chat_endpoint(request: ChatRequestSchema):
     })
 
     return {
-    "response": bot_response,
-    "books": []
+        "response": bot_response,
+        "books": []
     }
 

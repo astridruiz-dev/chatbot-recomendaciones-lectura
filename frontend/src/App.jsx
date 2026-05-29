@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from "react"
+import RecommendationCard from "./components/RecommendationCard"
 
 function App() {
 
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const [language, setLanguage] = useState("Spanish")
+  const [readingLevel, setReadingLevel] = useState("11° grado")
 
- const [messages, setMessages] = useState([
-  {
-    sender: "bot",
-    text: `¡Hola! 👋
+ const welcomeMessages = {
+  Spanish: `¡Hola! 👋
 
 Estoy aquí para ayudarte a descubrir libros que realmente puedan interesarte. 📚
 
@@ -19,9 +20,51 @@ Puedes probar mensajes como:
 🕵️ Quiero libros de misterio
 ⚔️ Recomiéndame lecturas sobre guerra
 
-¿Qué te gustaría leer hoy?`
+¿Qué te gustaría leer hoy?`,
+
+  English: `Hello! 👋
+
+I'm here to help you discover books you may enjoy. 📚
+
+Try asking:
+
+📖 I like historical novels
+🕵️ I want mystery books
+⚔️ Recommend books about war
+
+What would you like to read today?`
+}
+
+const [messages, setMessages] = useState([
+  {
+    sender: "bot",
+    text: welcomeMessages["Spanish"]
   }
 ])
+
+const texts = {
+  Spanish: {
+    title: "Descubre tu próxima lectura",
+    language: "Idioma",
+    readingLevel: "Nivel lector",
+    placeholder: "Escribe tu mensaje...",
+    send: "Enviar",
+    footer:
+      "Descubre libros según tus intereses, temas y nivel lector."
+  },
+
+  English: {
+    title: "Discover your next read",
+    language: "Language",
+    readingLevel: "Reading level",
+    placeholder: "Type your message...",
+    send: "Send",
+    footer:
+      "Discover books based on your interests, themes and reading level."
+  }
+}
+
+const t = texts[language]
 
   const messagesEndRef = useRef(null)
 
@@ -30,6 +73,17 @@ Puedes probar mensajes como:
     behavior: "smooth"
   })
 }, [messages])
+
+useEffect(() => {
+
+  setMessages([
+    {
+      sender: "bot",
+      text: welcomeMessages[language]
+    }
+  ])
+
+}, [language])
 
   const sendMessage = async () => {
 
@@ -58,8 +112,10 @@ Puedes probar mensajes como:
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            message: currentMessage
-          })
+          message: currentMessage,
+          language: language,
+          reading_level: readingLevel
+        })
         }
       )
 
@@ -95,11 +151,11 @@ Puedes probar mensajes como:
       <aside className="w-72 bg-indigo-950 text-white p-6 flex flex-col">
 
         <h1 className="text-3xl font-bold">
-          Library Chatbot
+          ABC LRC
         </h1>
 
-        <p className="text-violet-100 mt-2 text-sm">
-          Plataforma inteligente de recomendaciones literarias.
+        <p className="text-violet-200 mt-3 text-xs leading-relaxed">
+          Discover books and resources tailored for you.
         </p>
 
         {/* Options */}
@@ -107,21 +163,29 @@ Puedes probar mensajes como:
 
           <div>
             <label className="block mb-2 text-sm font-medium">
-              Idioma
+              {t.language}
             </label>
 
-            <select className="w-full bg-indigo-900 rounded-xl p-3 outline-none">
-              <option>Español</option>
-              <option>English</option>
-            </select>
+           <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full bg-indigo-900 rounded-xl p-3 outline-none"
+          >
+            <option>Spanish</option>
+            <option>English</option>
+          </select>
           </div>
 
           <div>
             <label className="block mb-2 text-sm font-medium">
-              Nivel lector
+              {t.readingLevel}
             </label>
 
-            <select className="w-full bg-indigo-900 rounded-xl p-3 outline-none">
+            <select
+              value={readingLevel}
+              onChange={(e) => setReadingLevel(e.target.value)}
+              className="w-full bg-indigo-900 rounded-xl p-3 outline-none"
+        >
               <option>6° grado</option>
               <option>7° grado</option>
               <option>8° grado</option>
@@ -136,7 +200,7 @@ Puedes probar mensajes como:
 
         {/* Footer */}
         <div className="mt-auto text-sm text-violet-200">
-          Descubre libros según tus intereses, temas y nivel lector.
+          {t.footer}
         </div>
 
       </aside>
@@ -148,7 +212,7 @@ Puedes probar mensajes como:
         <div className="mb-6">
 
           <h2 className="text-3xl font-bold text-slate-800">
-            Descubre tu próxima lectura 
+            {t.title}
           </h2>
 
         </div>
@@ -156,118 +220,111 @@ Puedes probar mensajes como:
         {/* Chat Container */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/40 p-6 flex flex-col h-[80vh]">
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto space-y-6">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex mb-6 ${
-                  msg.sender === "user"
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
-              >
-                <div
-            className={`
-              px-5 py-4 rounded-2xl shadow-md
-              ${
-                msg.sender === "user"
-                  ? "max-w-xl"
-                  : "max-w-2xl"
-              }
+{/* Messages */}
+<div className="flex-1 overflow-y-auto space-y-6">
 
-              ${
-                msg.sender === "user"
-                  ? "bg-violet-600 text-white rounded-tr-sm"
-                  : "bg-violet-100 text-slate-800 rounded-tl-sm"
-              }
-            `}
-          >
+  {messages.map((msg, index) => (
 
-            <div
-              className={`
-                text-xs font-semibold mb-2
-                ${
-                  msg.sender === "user"
-                    ? "text-violet-100"
-                    : "text-violet-700"
-                }
-              `}
-            >
-              {msg.sender === "user" ? "Tú" : "Asistente"}
-            </div>
-
-            <div className="whitespace-pre-line">
-              {msg.text}
-
-              {msg.books?.length > 0 && (
-
-  <div className="mt-4 space-y-3">
-
-    {msg.books.map((book, index) => (
+    <div
+      key={index}
+      className={`flex mb-6 ${
+        msg.sender === "user"
+          ? "justify-end"
+          : "justify-start"
+      }`}
+    >
 
       <div
-        key={index}
-        className="
-          bg-white
-          border
-          border-violet-200
-          rounded-xl
-          p-4
-          shadow-sm
-        "
+        className={`
+          px-5 py-4 rounded-2xl shadow-md
+          ${
+            msg.sender === "user"
+              ? "max-w-xl"
+              : "max-w-2xl"
+          }
+          ${
+            msg.sender === "user"
+              ? "bg-violet-600 text-white rounded-tr-sm"
+              : "bg-violet-100 text-slate-800 rounded-tl-sm"
+          }
+        `}
       >
 
-        <h3 className="font-semibold text-slate-800">
-          {book.title}
-        </h3>
+        <div
+          className={`
+            text-xs font-semibold mb-2
+            ${
+              msg.sender === "user"
+                ? "text-violet-100"
+                : "text-violet-700"
+            }
+          `}
+        >
+          {msg.sender === "user" ? "Tú" : "Asistente"}
+        </div>
 
-        <p className="text-sm text-slate-600">
-          {book.author}
-        </p>
+        <div className="whitespace-pre-line">
+          {msg.text}
+        </div>
 
-        <p className="text-sm text-slate-500 mt-1">
-          Nivel lector: {book.reading_level}
-        </p>
+        {msg.books?.length > 0 && (
 
-        <p className="text-sm text-slate-500">
-          Temas: {book.themes.join(", ")}
-        </p>
+          <div className="mt-4 space-y-4">
+
+            {msg.books.map((book, index) => (
+
+              <RecommendationCard
+                key={index}
+                book={book}
+              />
+
+            ))}
+
+          </div>
+
+        )}
 
       </div>
 
-    ))}
+    </div>
 
-  </div>
+  ))}
 
-)}
-                </div>
+  <div ref={messagesEndRef}></div>
 
-            </div>
+  {loading && (
 
-              </div>
-            ))}
+    <div className="flex justify-start">
 
-            <div ref={messagesEndRef}></div>
+      <div
+        className="
+          bg-violet-100
+          text-slate-700
+          px-5
+          py-4
+          rounded-2xl
+          rounded-tl-sm
+          shadow-md
+        "
+      >
 
-            {loading && (
-              <div className="flex justify-start">
-                <div
-                  className="
-                    bg-violet-100
-                    text-slate-700
-                    px-5
-                    py-4
-                    rounded-2xl
-                    rounded-tl-sm
-                    shadow-md
-                  "
-                >
-                  Pensando...
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="flex gap-1 items-center">
+
+          <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" />
+
+          <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+
+          <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+
+        </div>
+
+      </div>
+
+    </div>
+
+  )}
+
+</div>
 
           {/* Input */}
       
@@ -282,7 +339,7 @@ Puedes probar mensajes como:
                   }
                 }}
                 type="text"
-                placeholder="Escribe tu mensaje..."
+                placeholder={t.placeholder}
                 className="
                   flex-1
                   bg-[#F5F3FF]
@@ -311,7 +368,7 @@ Puedes probar mensajes como:
                 transition
               "
             >
-              Enviar
+              {t.send}
             </button>
 
           </div>

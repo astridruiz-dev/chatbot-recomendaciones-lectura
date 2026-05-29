@@ -10,6 +10,16 @@ class ChatRequestSchema(BaseModel):
         description="Mensaje del usuario"
     )
 
+    language: str = Field(
+        default="Spanish",
+        description="Idioma seleccionado"
+    )
+
+    reading_level: str = Field(
+        default="11° grado",
+        description="Nivel lector"
+    )
+
 
 class ChatResponseSchema(BaseModel):
 
