@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes.books import router as books_router
 from app.routes.recommendations import router as recommendations_router
 from app.routes.chat import router as chat_router
+from app.routes.follett import router as follett_router
 
 # Crear aplicación
 app = FastAPI(
@@ -50,3 +51,4 @@ def health_check():
 app.include_router(books_router)
 app.include_router(recommendations_router)
 app.include_router(chat_router)
+app.include_router(follett_router)
