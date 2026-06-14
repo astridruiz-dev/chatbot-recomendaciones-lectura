@@ -38,18 +38,18 @@ def get_follett_headers():
         "Content-Type": "application/json"
     }
 
-
-def test_follett_connection():
+def make_request(url):
 
     """
-    Realiza una solicitud de prueba a una API externa para validar
-    la arquitectura de integración.
+    Realiza una solicitud GET reutilizable con los
+    encabezados de autenticación configurados.
     """
 
     try:
 
         response = requests.get(
-            "https://jsonplaceholder.typicode.com/posts/1",
+            url,
+            headers=get_follett_headers(),
             timeout=10
         )
 
@@ -63,3 +63,14 @@ def test_follett_connection():
             "status": "error",
             "message": str(error)
         }
+
+def test_follett_connection():
+
+    """
+    Realiza una solicitud de prueba a una API externa para validar
+    la arquitectura de integración.
+    """
+
+    return make_request(
+        "https://jsonplaceholder.typicode.com/posts/1"
+    )
