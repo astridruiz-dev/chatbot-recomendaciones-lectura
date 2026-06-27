@@ -218,3 +218,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 backend/library_chatbot.db
+
+.env
+.env.*
+backend/.env
+backend/.env.*
+backend/library_chatbot.db

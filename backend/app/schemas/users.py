@@ -6,6 +6,11 @@ class UserCreate(BaseModel):
     language: str
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str
+    language: str
+
+
 class UserResponse(BaseModel):
     id: int
     email: str
