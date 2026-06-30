@@ -1,53 +1,28 @@
 import { useState, useEffect, useRef } from "react"
 import MessageBubble from "./components/MessageBubble"
 import ChatInput from "./components/ChatInput"
+import LoginScreen from "./components/LoginScreen"
+import RouteMenu from "./components/RouteMenu"
+import IndependentReading from "./components/IndependentReading"
+import RecommendationsView from "./components/RecommendationsView"
+import SurpriseMe from "./components/SurpriseMe"
+import KnownSearch from "./components/KnownSearch"
 
 function App() {
 
+  const [user, setUser] = useState(null)
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
-
+  const [selectedRoute, setSelectedRoute] = useState(null)
   const [language, setLanguage] = useState("Spanish")
-  const [readingLevel, setReadingLevel] = useState("11° grado")
-
- const welcomeMessages = {
-  Spanish: `¡Hola! 👋
-
-Estoy aquí para ayudarte a descubrir libros que realmente puedan interesarte. 📚
-
-Puedes probar mensajes como:
-
-📖 Me gustan las novelas históricas
-🕵️ Quiero libros de misterio
-⚔️ Recomiéndame lecturas sobre guerra
-
-¿Qué te gustaría leer hoy?`,
-
-  English: `Hello! 👋
-
-I'm here to help you discover books you may enjoy. 📚
-
-Try asking:
-
-📖 I like historical novels
-🕵️ I want mystery books
-⚔️ Recommend books about war
-
-What would you like to read today?`
-}
-
-const [messages, setMessages] = useState([
-  {
-    sender: "bot",
-    text: welcomeMessages["Spanish"]
-  }
-])
+  const [recommendedBooks, setRecommendedBooks] = useState([])
+  const [favoriteCategories, setFavoriteCategories] = useState([])
+  const [messages, setMessages] = useState([])
 
 const texts = {
   Spanish: {
     title: "Descubre tu próxima lectura",
     language: "Idioma",
-    readingLevel: "Nivel lector",
     placeholder: "Escribe tu mensaje...",
     send: "Enviar",
     footer:
@@ -57,7 +32,6 @@ const texts = {
   English: {
     title: "Discover your next read",
     language: "Language",
-    readingLevel: "Reading level",
     placeholder: "Type your message...",
     send: "Send",
     footer:
@@ -75,16 +49,14 @@ const t = texts[language]
   })
 }, [messages])
 
-useEffect(() => {
 
-  setMessages([
-    {
-      sender: "bot",
-      text: welcomeMessages[language]
-    }
-  ])
-
-}, [language])
+  const userDescription = user?.is_staff
+    ? language === "English"
+      ? "ABC Staff"
+      : "Personal ABC"
+    : language === "English"
+      ? `Grade ${user?.grade}`
+      : `${user?.grade}.º grado`
 
   const sendMessage = async () => {
 
@@ -115,8 +87,10 @@ useEffect(() => {
           body: JSON.stringify({
           message: currentMessage,
           language: language,
-          reading_level: readingLevel
-        })
+          reading_level: user?.grade
+            ? `${user.grade}° grado`
+            : "Staff"
+          })
         }
       )
 
@@ -145,146 +119,379 @@ useEffect(() => {
 
   }
 
+      const handleLogin = (loggedUser) => {
+        setUser(loggedUser)
+      setLanguage(loggedUser.language || "Spanish")
+
+      
+  }
+      const handleSelectRoute = (routeId) => {
+  setSelectedRoute(routeId)
+}
+
+      const saveFavoriteCategory = (categoryTitle) => {
+  setFavoriteCategories((prev) => {
+    const existingCategory = prev.find(
+      (category) => category.title === categoryTitle
+    )
+
+    if (existingCategory) {
+      return prev.map((category) =>
+        category.title === categoryTitle
+          ? {
+              ...category,
+              count: category.count + 1
+            }
+          : category
+      )
+    }
+
+    return [
+      ...prev,
+      {
+        title: categoryTitle,
+        count: 1
+      }
+    ]
+  })
+}
+      const handleStartRecommendations = (preferences) => {
+  console.log("Preferencias seleccionadas:", preferences)
+  
+  saveFavoriteCategory(preferences.categoryTitle)
+  console.log("Guardando categoría:", preferences.categoryTitle)
+  
+  const mockBooks = [
+    {
+      id: 1,
+      title: language === "English" ? "The Last Star Map" : "El último mapa estelar",
+      author: "A. Rivera",
+      pages: 168,
+      genre: preferences.categoryTitle,
+      available: true,
+      coverEmoji: "🚀"
+    },
+    {
+      id: 2,
+      title: language === "English" ? "Beyond the Red Planet" : "Más allá del planeta rojo",
+      author: "M. Carter",
+      pages: 142,
+      genre: preferences.categoryTitle,
+      available: true,
+      coverEmoji: "🪐"
+    },
+    {
+      id: 3,
+      title: language === "English" ? "The Robot Who Dreamed" : "El robot que soñaba",
+      author: "L. Chen",
+      pages: 196,
+      genre: preferences.categoryTitle,
+      available: false,
+      coverEmoji: "🤖"
+    }
+  ]
+
+  setRecommendedBooks(mockBooks)
+  setSelectedRoute("recommendations")
+}
+     
+  const handleStartSurprise = (surpriseType) => {
+  const isBasedOnInterests = surpriseType === "based-on-interests"
+
+  const selectedInterest = favoriteCategories.length > 0
+    ? favoriteCategories[0].title
+    : language === "English"
+      ? "adventure"
+      : "aventura"
+
+  const mockBooks = [
+    {
+      id: 101,
+      title: language === "English" ? "The Hidden Door" : "La puerta escondida",
+      author: "S. Morgan",
+      pages: 128,
+      genre: isBasedOnInterests
+        ? selectedInterest
+        : language === "English"
+          ? "Unexpected discovery"
+          : "Descubrimiento inesperado",
+      available: true,
+      coverEmoji: "🚪",
+      year: 2023,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? "A story chosen to help you discover something different."
+        : "Una historia elegida para ayudarte a descubrir algo diferente."
+    },
+    {
+      id: 102,
+      title: language === "English" ? "Moonlight Library" : "La biblioteca de la luna",
+      author: "R. Castillo",
+      pages: 214,
+      genre: isBasedOnInterests
+        ? selectedInterest
+        : language === "English"
+          ? "Fantasy"
+          : "Fantasía",
+      available: true,
+      coverEmoji: "🌙",
+      year: 2022,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? "A mysterious recommendation for curious readers."
+        : "Una recomendación misteriosa para lectores curiosos."
+    },
+    {
+      id: 103,
+      title: language === "English" ? "The Map Nobody Read" : "El mapa que nadie leyó",
+      author: "L. Méndez",
+      pages: 96,
+      genre: isBasedOnInterests
+        ? selectedInterest
+        : language === "English"
+          ? "Adventure"
+          : "Aventura",
+      available: false,
+      coverEmoji: "🗺️",
+      year: 2021,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? "A short book that invites readers to follow clues and take risks."
+        : "Un libro corto que invita a seguir pistas y tomar riesgos."
+    }
+  ]
+
+  setRecommendedBooks(mockBooks)
+  setSelectedRoute("recommendations")
+}
+  const handleStartKnownSearch = (searchData) => {
+  console.log("Búsqueda seleccionada:", searchData)
+
+  const mockBooks = [
+    {
+      id: 201,
+      title: language === "English" ? "The Secret Pages" : "Las páginas secretas",
+      author: "D. Herrera",
+      pages: 118,
+      genre: searchData.searchTypeTitle,
+      available: true,
+      coverEmoji: "📘",
+      year: 2020,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? `This recommendation is related to your search: "${searchData.query}".`
+        : `Esta recomendación está relacionada con tu búsqueda: "${searchData.query}".`
+    },
+    {
+      id: 202,
+      title: language === "English" ? "Clues in the Library" : "Pistas en la biblioteca",
+      author: "M. Torres",
+      pages: 156,
+      genre: searchData.searchTypeTitle,
+      available: true,
+      coverEmoji: "🔎",
+      year: 2021,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? `A possible match for: "${searchData.query}".`
+        : `Una posible coincidencia para: "${searchData.query}".`
+    },
+    {
+      id: 203,
+      title: language === "English" ? "A Book of Many Doors" : "Un libro de muchas puertas",
+      author: "L. Chen",
+      pages: 204,
+      genre: searchData.searchTypeTitle,
+      available: false,
+      coverEmoji: "🚪",
+      year: 2022,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? `This book may connect with the topic or keyword you entered.`
+        : `Este libro puede relacionarse con el tema o palabra clave que escribiste.`
+    }
+  ]
+
+  setRecommendedBooks(mockBooks)
+  setSelectedRoute("recommendations")
+}
+
+  if (!user) {
   return (
-    <div className="min-h-screen bg-[#F5F3FF] flex">
+    <LoginScreen onLogin={handleLogin} />
+    )
+  }
 
-      {/* Sidebar */}
-      <aside className="w-72 bg-indigo-950 text-white p-6 flex flex-col">
+  return (
+  <div className="min-h-screen bg-[#F5F3FF]">
 
-        <h1 className="text-3xl font-bold">
+    {/* Top bar */}
+    <header className="bg-indigo-950 text-white px-8 py-5 flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold">
           ABC LRC
         </h1>
 
-        <p className="text-violet-200 mt-3 text-xs leading-relaxed">
-          Discover books and resources tailored for you.
+        <p className="text-violet-200 text-sm mt-1">
+          {language === "English"
+            ? "Book discovery assistant"
+            : "Asistente de descubrimiento de libros"}
         </p>
+      </div>
 
-        {/* Options */}
-        <div className="mt-10 space-y-6">
+      <div className="flex items-center gap-4">
 
-          <div>
-            <label className="block mb-2 text-sm font-medium">
-              {t.language}
-            </label>
-
-           <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full bg-indigo-900 rounded-xl p-3 outline-none"
-          >
-            <option>Spanish</option>
-            <option>English</option>
-          </select>
-          </div>
-
-          <div>
-            <label className="block mb-2 text-sm font-medium">
-              {t.readingLevel}
-            </label>
-
-            <select
-              value={readingLevel}
-              onChange={(e) => setReadingLevel(e.target.value)}
-              className="w-full bg-indigo-900 rounded-xl p-3 outline-none"
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className="bg-indigo-900 rounded-xl px-4 py-2 outline-none text-white"
         >
-              <option>6° grado</option>
-              <option>7° grado</option>
-              <option>8° grado</option>
-              <option>9° grado</option>
-              <option>10° grado</option>
-              <option>11° grado</option>
-              <option>12° grado</option>
-            </select>
-          </div>
+          <option value="Spanish">Español</option>
+          <option value="English">English</option>
+        </select>
 
-        </div>
-
-        {/* Footer */}
-        <div className="mt-auto text-sm text-violet-200">
-          {t.footer}
-        </div>
-
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-
-        {/* Top Header */}
-        <div className="mb-6">
-
-          <h2 className="text-3xl font-bold text-slate-800">
-            {t.title}
-          </h2>
-
-        </div>
-
-        {/* Chat Container */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/40 p-6 flex flex-col h-[80vh]">
-
-{/* Messages */}
-<div className="flex-1 overflow-y-auto space-y-6">
-
- {messages.map((msg, index) => (
-
-  <MessageBubble
-    key={index}
-    msg={msg}
-  />
-
-))}
-
-  <div ref={messagesEndRef}></div>
-
-  {loading && (
-
-    <div className="flex justify-start">
-
-      <div
-        className="
-          bg-violet-100
-          text-slate-700
-          px-5
-          py-4
-          rounded-2xl
-          rounded-tl-sm
-          shadow-md
-        "
-      >
-
-        <div className="flex gap-1 items-center">
-
-          <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" />
-
-          <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce [animation-delay:0.15s]" />
-
-          <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce [animation-delay:0.3s]" />
-
+        <div className="bg-indigo-900 rounded-xl px-4 py-2 text-violet-100">
+          {userDescription}
         </div>
 
       </div>
+    </header>
 
-    </div>
+    {/* Main Content */}
+    <main className="px-8 py-8">
 
-  )}
+      <div className="max-w-6xl mx-auto">
 
-</div>
+        {!selectedRoute ? (
+        <RouteMenu
+          language={language}
+          user={user}
+          favoriteCategories={favoriteCategories}
+          onSelectRoute={handleSelectRoute}
+        />
+      ) : selectedRoute === "independent-reading" ? (
+        <IndependentReading
+          language={language}
+          user={user}
+          onBack={() => setSelectedRoute(null)}
+          onStartRecommendations={handleStartRecommendations}
+        />
+      ) : selectedRoute === "surprise" ? (
+        <SurpriseMe
+          language={language}
+          favoriteCategories={favoriteCategories}
+          onBack={() => setSelectedRoute(null)}
+          onStartSurprise={handleStartSurprise}
+        />
 
-          {/* Input */}
-      
-         <ChatInput
-  message={message}
-  setMessage={setMessage}
-  sendMessage={sendMessage}
-  placeholder={t.placeholder}
-  buttonText={t.send}
-/>
+      ) : selectedRoute === "known-search" ? (
+        <KnownSearch
+          language={language}
+          onBack={() => setSelectedRoute(null)}
+          onStartSearch={handleStartKnownSearch}
+        />
 
-        </div>
+      ) : selectedRoute === "recommendations" ? (
+        <RecommendationsView
+          language={language}
+          books={recommendedBooks}
+          onBack={() => setSelectedRoute(null)}
+        />
+      ) : (
+        <>
+            {/* Top Header */}
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => setSelectedRoute(null)}
+                className="mb-4 text-sm font-semibold text-indigo-700 hover:text-indigo-950"
+              >
+                ← {language === "English" ? "Back to options" : "Volver a opciones"}
+              </button>
 
-      </main>
+              <h2 className="text-3xl font-bold text-slate-800">
+                {t.title}
+              </h2>
+            </div>
 
-    </div>
-  )
+            {/* Chat Container */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/40 p-6 flex flex-col h-[75vh]">
+
+              <div className="flex-1 overflow-y-auto space-y-6">
+
+                {messages.map((msg, index) => (
+
+                  <MessageBubble
+                    key={index}
+                    msg={msg}
+                    userLabel={
+                      language === "English"
+                        ? "You"
+                        : "Tú"
+                    }
+                    assistantLabel={
+                      language === "English"
+                        ? "Assistant"
+                        : "Asistente"
+                    }
+                  />
+
+                ))}
+
+                <div ref={messagesEndRef}></div>
+
+                {loading && (
+
+                  <div className="flex justify-start">
+
+                    <div
+                      className="
+                        bg-violet-100
+                        text-slate-700
+                        px-5
+                        py-4
+                        rounded-2xl
+                        rounded-tl-sm
+                        shadow-md
+                      "
+                    >
+
+                      <div className="flex gap-1 items-center">
+
+                        <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" />
+
+                        <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+
+                        <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+              </div>
+
+              <ChatInput
+                message={message}
+                setMessage={setMessage}
+                sendMessage={sendMessage}
+                placeholder={t.placeholder}
+                buttonText={t.send}
+              />
+
+            </div>
+          </>
+        )}
+
+      </div>
+
+    </main>
+
+  </div>
+)
 }
 
 export default App

@@ -1,6 +1,10 @@
 import RecommendationCard from "./RecommendationCard"
 
-function MessageBubble({ msg }) {
+function MessageBubble({
+  msg,
+  userLabel,
+  assistantLabel
+}) {
 
   return (
 
@@ -38,7 +42,7 @@ function MessageBubble({ msg }) {
             }
           `}
         >
-          {msg.sender === "user" ? "Tú" : "Asistente"}
+          {msg.sender === "user" ? userLabel : assistantLabel}
         </div>
 
         <div className="whitespace-pre-line">
