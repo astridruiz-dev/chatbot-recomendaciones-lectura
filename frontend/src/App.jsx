@@ -7,6 +7,7 @@ import IndependentReading from "./components/IndependentReading"
 import RecommendationsView from "./components/RecommendationsView"
 import SurpriseMe from "./components/SurpriseMe"
 import KnownSearch from "./components/KnownSearch"
+import AssignmentCollections from "./components/AssignmentCollections"
 
 function App() {
 
@@ -316,6 +317,76 @@ const t = texts[language]
   setSelectedRoute("recommendations")
 }
 
+const handleStartCollectionSearch = (collectionData) => {
+  console.log("Colección seleccionada:", collectionData)
+
+  const mockBooks = [
+    {
+      id: 301,
+      title: language === "English"
+        ? `${collectionData.collectionTitle}: Essential Readings`
+        : `${collectionData.collectionTitle}: lecturas esenciales`,
+      author: "ABC LRC",
+      pages: 124,
+      genre: collectionData.collectionTitle,
+      sublocation: collectionData.collectionTitle,
+      available: true,
+      coverEmoji: "📚",
+      sublocation: collectionData.collectionTitle,
+      callNumber: "FIC LRC",
+      isbn: "978-0000000000",
+      year: 2022,
+      location: language === "English" ? "LRC collection shelves" : "Colección del LRC",
+      summary: language === "English"
+        ? `A selected resource connected to the ${collectionData.collectionTitle} collection.`
+        : `Un recurso seleccionado relacionado con la colección ${collectionData.collectionTitle}.`
+    },
+    {
+      id: 302,
+      title: language === "English"
+        ? `Introduction to ${collectionData.collectionTitle}`
+        : `Introducción a ${collectionData.collectionTitle}`,
+      author: "LRC Research Guide",
+      pages: 96,
+      genre: collectionData.collectionTitle,
+      sublocation: collectionData.collectionTitle,
+      available: true,
+      coverEmoji: "📝",
+      sublocation: collectionData.collectionTitle,
+      callNumber: "REF LRC",
+      isbn: "978-0000000000",
+      year: 2021,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? "A useful starting point for research, class assignments, or academic exploration."
+        : "Un buen punto de partida para investigación, tareas o exploración académica."
+    },
+    {
+      id: 303,
+      title: language === "English"
+        ? `Stories and Contexts: ${collectionData.collectionTitle}`
+        : `Historias y contextos: ${collectionData.collectionTitle}`,
+      author: "Academic Collection",
+      pages: 210,
+      genre: collectionData.collectionTitle,
+      sublocation: collectionData.collectionTitle,
+      available: false,
+      coverEmoji: "🔎",
+      sublocation: collectionData.collectionTitle,
+      callNumber: "NF LRC",
+      isbn: "978-0000000000",
+      year: 2020,
+      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
+      summary: language === "English"
+        ? "A related resource that may support deeper reading and classroom projects."
+        : "Un recurso relacionado que puede apoyar lecturas más profundas y proyectos de clase."
+    }
+  ]
+
+  setRecommendedBooks(mockBooks)
+  setSelectedRoute("recommendations")
+}
+
   if (!user) {
   return (
     <LoginScreen onLogin={handleLogin} />
@@ -389,6 +460,14 @@ const t = texts[language]
           language={language}
           onBack={() => setSelectedRoute(null)}
           onStartSearch={handleStartKnownSearch}
+        />
+
+      ) : selectedRoute === "assignment" ? (
+        <AssignmentCollections
+          language={language}
+          user={user}
+          onBack={() => setSelectedRoute(null)}
+          onStartCollectionSearch={handleStartCollectionSearch}
         />
 
       ) : selectedRoute === "recommendations" ? (

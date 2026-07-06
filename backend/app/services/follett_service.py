@@ -1,76 +1,272 @@
 import os
-import requests
 
+import httpx
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
-# Cargar variables del archivo .env
 load_dotenv()
 
-FOLLETT_BASE_URL = os.getenv("FOLLETT_BASE_URL")
-FOLLETT_CLIENT_ID = os.getenv("FOLLETT_CLIENT_ID")
-FOLLETT_CLIENT_SECRET = os.getenv("FOLLETT_CLIENT_SECRET")
-FOLLETT_TOKEN = os.getenv("FOLLETT_TOKEN")
 
+def get_follett_settings():
+    base_url = os.getenv("FOLLETT_BASE_URL")
+    api_base_path = os.getenv("FOLLETT_API_BASE_PATH")
+    client_id = os.getenv("FOLLETT_CLIENT_ID")
+    client_secret = os.getenv("FOLLETT_CLIENT_SECRET")
 
-def get_follett_configuration():
+    missing_values = []
 
+    if not base_url:
+        missing_values.append("FOLLETT_BASE_URL")
 
-    """
-    Obtiene la configuración del servicio Follett
-    desde las variables de entorno.
-    """
+    if not api_base_path:
+        missing_values.append("FOLLETT_API_BASE_PATH")
 
-    return {
-        "base_url": FOLLETT_BASE_URL,
-        "client_id": FOLLETT_CLIENT_ID,
-        "client_secret": FOLLETT_CLIENT_SECRET,
-        "token": FOLLETT_TOKEN
-    }
-def get_follett_headers():
+    if not client_id:
+        missing_values.append("FOLLETT_CLIENT_ID")
 
-    """
-    Genera los encabezados necesarios para autenticarse
-    con la API de Follett utilizando Bearer Token.
-    """
+    if not client_secret:
+        missing_values.append("FOLLETT_CLIENT_SECRET")
 
-    return {
-        "Authorization": f"Bearer {FOLLETT_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-def make_request(url):
-
-    """
-    Realiza una solicitud GET reutilizable con los
-    encabezados de autenticación configurados.
-    """
-
-    try:
-
-        response = requests.get(
-            url,
-            headers=get_follett_headers(),
-            timeout=10
+    if missing_values:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Faltan variables de entorno de Follett: {', '.join(missing_values)}"
         )
 
-        response.raise_for_status()
+    return {
+        "base_url": base_url.rstrip("/"),
+        "api_base_path": api_base_path,
+        "client_id": client_id,
+        "client_secret": client_secret
+    }
+
+
+def get_follett_api_base_url():
+    settings = get_follett_settings()
+    return f"{settings['base_url']}{settings['api_base_path']}"
+
+
+async def get_follett_access_token():
+    settings = get_follett_settings()
+
+    token_url = f"{settings['base_url']}{settings['api_base_path']}/auth/accessToken"
+
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": settings["client_id"],
+        "client_secret": settings["client_secret"]
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                token_url,
+                data=payload,
+                headers=headers
+            )
+
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail={
+                    "message": "Follett rechazó la solicitud de token",
+                    "follett_status_code": response.status_code,
+                    "follett_response": response.text
+                }
+            )
+
+        token_data = response.json()
+        access_token = token_data.get("access_token")
+
+        if not access_token:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Follett respondió, pero no devolvió access_token",
+                    "follett_response": token_data
+                }
+            )
+
+        return access_token
+
+    except httpx.RequestError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"No se pudo conectar con Follett: {str(error)}"
+        )
+
+
+async def get_follett_status():
+    access_token = await get_follett_access_token()
+    api_base_url = get_follett_api_base_url()
+
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(
+                f"{api_base_url}/status",
+                headers=headers
+            )
+
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail={
+                    "message": "No se pudo consultar el status de Follett",
+                    "follett_status_code": response.status_code,
+                    "follett_response": response.text
+                }
+            )
 
         return response.json()
 
-    except requests.RequestException as error:
+    except httpx.RequestError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"No se pudo conectar con el status de Follett: {str(error)}"
+        )
+async def follett_get(endpoint_path: str, params: dict | None = None):
+    access_token = await get_follett_access_token()
+    api_base_url = get_follett_api_base_url()
 
-        return {
-            "status": "error",
-            "message": str(error)
-        }
+    clean_endpoint_path = endpoint_path.strip("/")
 
-def test_follett_connection():
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json"
+    }
 
-    """
-    Realiza una solicitud de prueba a una API externa para validar
-    la arquitectura de integración.
-    """
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(
+                f"{api_base_url}/{clean_endpoint_path}",
+                headers=headers,
+                params=params
+            )
 
-    return make_request(
-        "https://jsonplaceholder.typicode.com/posts/1"
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail={
+                    "message": "No se pudo consultar el endpoint de Follett",
+                    "endpoint": endpoint_path,
+                    "follett_status_code": response.status_code,
+                    "follett_response": response.text
+                }
+            )
+
+        return response.json()
+
+    except httpx.RequestError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"No se pudo conectar con Follett: {str(error)}"
+        )
+async def get_follett_sites(product_types: list[str] | None = None):
+    params = {}
+
+    if product_types:
+        params["productTypes"] = product_types
+
+    return await follett_get("sites", params=params)   
+
+async def get_follett_locations():
+    return await follett_get("locations")
+
+def get_secondary_site_short_name():
+    site_short_name = os.getenv("FOLLETT_SECONDARY_SITE_SHORT_NAME")
+
+    if not site_short_name:
+        raise HTTPException(
+            status_code=500,
+            detail="FOLLETT_SECONDARY_SITE_SHORT_NAME no está configurado en backend/.env"
+        )
+
+    return site_short_name
+
+
+async def get_secondary_resource_items(limit: int = 10):
+    site_short_name = get_secondary_site_short_name()
+
+    params = {
+        "siteShortName": site_short_name,
+        "$top": limit,
+        "includeCurrentCheckout": False
+    }
+
+    return await follett_get("materials/resources/items", params=params)
+
+async def get_resource_items_without_site_filter(limit: int = 5):
+    params = {
+        "$top": limit,
+        "includeCurrentCheckout": False
+    }
+
+    return await follett_get("materials/resources/items", params=params)
+
+def get_follett_cdl_base_url():
+    settings = get_follett_settings()
+    return f"{settings['base_url']}{settings['api_base_path']}/cdl"
+
+
+async def follett_cdl_get(endpoint_path: str, params: dict | None = None):
+    access_token = await get_follett_access_token()
+    cdl_base_url = get_follett_cdl_base_url()
+
+    clean_endpoint_path = endpoint_path.strip("/")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(
+                f"{cdl_base_url}/{clean_endpoint_path}",
+                headers=headers,
+                params=params
+            )
+
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail={
+                    "message": "No se pudo consultar el endpoint CDL de Follett",
+                    "endpoint": endpoint_path,
+                    "follett_status_code": response.status_code,
+                    "follett_response": response.text
+                }
+            )
+
+        return response.json()
+
+    except httpx.RequestError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"No se pudo conectar con CDL de Follett: {str(error)}"
+        )
+
+
+async def get_cdl_tenants():
+    return await follett_cdl_get("tenants")
+
+async def get_resource_types():
+    return await follett_get("materials/resourcetypes")
+
+async def get_resources_by_type(resource_type: str, limit: int = 10):
+    params = {
+        "$top": limit
+    }
+
+    return await follett_get(
+        f"materials/resourcetypes/{resource_type}/resources",
+        params=params
     )

@@ -8,6 +8,10 @@ function SurpriseMe({
 
   const hasInterests = favoriteCategories.length > 0
 
+  const selectedInterest = hasInterests
+  ? favoriteCategories[0].title
+  : null
+
   return (
     <div className="w-full max-w-4xl mx-auto">
 
@@ -67,6 +71,11 @@ function SurpriseMe({
               : isEnglish
                 ? "Choose some interests first in Independent reading."
                 : "Primero elige algunos intereses en Lectura independiente."}
+          {selectedInterest && (
+          <p className="mt-4 rounded-xl bg-violet-50 px-3 py-2 text-sm font-semibold text-indigo-950">
+            {isEnglish ? "Based on:" : "Basado en:"} {selectedInterest}
+          </p>
+        )}
           </p>
         </button>
 

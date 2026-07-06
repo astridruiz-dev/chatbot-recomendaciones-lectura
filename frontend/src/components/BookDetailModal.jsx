@@ -50,10 +50,34 @@ function BookDetailModal({
 
               <p>
                 <span className="font-semibold">
-                  {isEnglish ? "Genre:" : "Género:"}
+                  {book.sublocation
+                    ? isEnglish
+                      ? "LRC sublocation:"
+                      : "Sublocation del LRC:"
+                    : isEnglish
+                      ? "Genre:"
+                      : "Género:"}
                 </span>{" "}
-                {book.genre}
+                {book.sublocation || book.genre}
               </p>
+
+              {book.callNumber && (
+              <p>
+                <span className="font-semibold">
+                  {isEnglish ? "Call number / location:" : "Call number / ubicación:"}
+                </span>{" "}
+                {book.callNumber}
+              </p>
+            )}
+
+            {book.isbn && (
+              <p>
+                <span className="font-semibold">
+                  ISBN:
+                </span>{" "}
+                {book.isbn}
+              </p>
+            )}
 
               <p>
                 <span className="font-semibold">

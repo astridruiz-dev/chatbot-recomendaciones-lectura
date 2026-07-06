@@ -24,7 +24,14 @@ function BookCard({ book, language, onViewDetails }) {
             </span>{" "}
             {book.pages}
           </p>
-
+            {book.sublocation && (
+              <p>
+                <span className="font-semibold">
+                  {isEnglish ? "LRC sublocation:" : "Sublocation del LRC:"}
+                </span>{" "}
+                {book.sublocation}
+              </p>
+            )}
           <p>
             <span className="font-semibold">
               {isEnglish ? "Availability:" : "Disponibilidad:"}
