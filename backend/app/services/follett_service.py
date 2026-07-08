@@ -100,38 +100,6 @@ async def get_follett_access_token():
         )
 
 
-async def get_follett_status():
-    access_token = await get_follett_access_token()
-    api_base_url = get_follett_api_base_url()
-
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(
-                f"{api_base_url}/status",
-                headers=headers
-            )
-
-        if response.status_code >= 400:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail={
-                    "message": "No se pudo consultar el status de Follett",
-                    "follett_status_code": response.status_code,
-                    "follett_response": response.text
-                }
-            )
-
-        return response.json()
-
-    except httpx.RequestError as error:
-        raise HTTPException(
-            status_code=502,
-            detail=f"No se pudo conectar con el status de Follett: {str(error)}"
-        )
 async def follett_get(endpoint_path: str, params: dict | None = None):
     access_token = await get_follett_access_token()
     api_base_url = get_follett_api_base_url()
@@ -169,104 +137,25 @@ async def follett_get(endpoint_path: str, params: dict | None = None):
             status_code=502,
             detail=f"No se pudo conectar con Follett: {str(error)}"
         )
-async def get_follett_sites(product_types: list[str] | None = None):
-    params = {}
-
-    if product_types:
-        params["productTypes"] = product_types
-
-    return await follett_get("sites", params=params)   
-
-async def get_follett_locations():
-    return await follett_get("locations")
-
-def get_secondary_site_short_name():
-    site_short_name = os.getenv("FOLLETT_SECONDARY_SITE_SHORT_NAME")
-
-    if not site_short_name:
-        raise HTTPException(
-            status_code=500,
-            detail="FOLLETT_SECONDARY_SITE_SHORT_NAME no está configurado en backend/.env"
-        )
-
-    return site_short_name
 
 
-async def get_secondary_resource_items(limit: int = 10):
-    site_short_name = get_secondary_site_short_name()
-
-    params = {
-        "siteShortName": site_short_name,
-        "$top": limit,
-        "includeCurrentCheckout": False
-    }
-
-    return await follett_get("materials/resources/items", params=params)
-
-async def get_resource_items_without_site_filter(limit: int = 5):
-    params = {
-        "$top": limit,
-        "includeCurrentCheckout": False
-    }
-
-    return await follett_get("materials/resources/items", params=params)
-
-def get_follett_cdl_base_url():
-    settings = get_follett_settings()
-    return f"{settings['base_url']}{settings['api_base_path']}/cdl"
+async def get_follett_status():
+    return await follett_get("status")
 
 
-async def follett_cdl_get(endpoint_path: str, params: dict | None = None):
-    access_token = await get_follett_access_token()
-    cdl_base_url = get_follett_cdl_base_url()
+async def get_follett_sites():
+    return await follett_get("sites")
 
-    clean_endpoint_path = endpoint_path.strip("/")
+async def get_secondary_lrc_site():
+    sites_data = await get_follett_sites()
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json"
-    }
+    sites = sites_data.get("value", [])
 
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(
-                f"{cdl_base_url}/{clean_endpoint_path}",
-                headers=headers,
-                params=params
-            )
+    for site in sites:
+        if site.get("siteId") == 101:
+            return site
 
-        if response.status_code >= 400:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail={
-                    "message": "No se pudo consultar el endpoint CDL de Follett",
-                    "endpoint": endpoint_path,
-                    "follett_status_code": response.status_code,
-                    "follett_response": response.text
-                }
-            )
-
-        return response.json()
-
-    except httpx.RequestError as error:
-        raise HTTPException(
-            status_code=502,
-            detail=f"No se pudo conectar con CDL de Follett: {str(error)}"
-        )
-
-
-async def get_cdl_tenants():
-    return await follett_cdl_get("tenants")
-
-async def get_resource_types():
-    return await follett_get("materials/resourcetypes")
-
-async def get_resources_by_type(resource_type: str, limit: int = 10):
-    params = {
-        "$top": limit
-    }
-
-    return await follett_get(
-        f"materials/resourcetypes/{resource_type}/resources",
-        params=params
+    raise HTTPException(
+        status_code=404,
+        detail="No se encontró el site de secundaria Academia Britanica Cuscatleca-LRC"
     )
