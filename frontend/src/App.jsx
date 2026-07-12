@@ -8,6 +8,7 @@ import RecommendationsView from "./components/RecommendationsView"
 import SurpriseMe from "./components/SurpriseMe"
 import KnownSearch from "./components/KnownSearch"
 import AssignmentCollections from "./components/AssignmentCollections"
+import { getRecommendations } from "./services/recommendationService"
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
   const [recommendedBooks, setRecommendedBooks] = useState([])
   const [favoriteCategories, setFavoriteCategories] = useState([])
   const [messages, setMessages] = useState([])
+  const [recommendationContext, setRecommendationContext] = useState(null)
 
 const texts = {
   Spanish: {
@@ -156,235 +158,199 @@ const t = texts[language]
     ]
   })
 }
-      const handleStartRecommendations = (preferences) => {
+  const handleStartRecommendations = async (preferences) => {
   console.log("Preferencias seleccionadas:", preferences)
-  
+
   saveFavoriteCategory(preferences.categoryTitle)
   console.log("Guardando categoría:", preferences.categoryTitle)
-  
-  const mockBooks = [
-    {
-      id: 1,
-      title: language === "English" ? "The Last Star Map" : "El último mapa estelar",
-      author: "A. Rivera",
-      pages: 168,
-      genre: preferences.categoryTitle,
-      available: true,
-      coverEmoji: "🚀"
-    },
-    {
-      id: 2,
-      title: language === "English" ? "Beyond the Red Planet" : "Más allá del planeta rojo",
-      author: "M. Carter",
-      pages: 142,
-      genre: preferences.categoryTitle,
-      available: true,
-      coverEmoji: "🪐"
-    },
-    {
-      id: 3,
-      title: language === "English" ? "The Robot Who Dreamed" : "El robot que soñaba",
-      author: "L. Chen",
-      pages: 196,
-      genre: preferences.categoryTitle,
-      available: false,
-      coverEmoji: "🤖"
-    }
-  ]
 
-  setRecommendedBooks(mockBooks)
-  setSelectedRoute("recommendations")
+  try {
+    const data = await getRecommendations({
+      category: preferences.apiCategory,
+      length: preferences.apiLength,
+      grade: preferences.is_staff ? null : preferences.grade,
+      available: true
+    })
+
+    setRecommendationContext({
+      title: language === "English"
+        ? `${preferences.categoryTitle} recommendations`
+        : `Recomendaciones de ${preferences.categoryTitle}`,
+      description: language === "English"
+        ? `Length: ${preferences.lengthTitle}`
+        : `Extensión: ${preferences.lengthTitle}`,
+      source: "independent-reading",
+      suggestions: data.suggestions || []
+    })
+
+    setRecommendedBooks(data.recommendations || [])
+    setSelectedRoute("recommendations")
+  } catch (error) {
+    console.error("Error al obtener recomendaciones:", error)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? "Recommendation error"
+        : "Error al obtener recomendaciones",
+      description: language === "English"
+        ? "We could not load recommendations right now."
+        : "No pudimos cargar recomendaciones en este momento.",
+      source: "independent-reading",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+  }
 }
-     
-  const handleStartSurprise = (surpriseType) => {
+
+const handleStartSurprise = async (surpriseType) => {
   const isBasedOnInterests = surpriseType === "based-on-interests"
 
   const selectedInterest = favoriteCategories.length > 0
     ? favoriteCategories[0].title
-    : language === "English"
-      ? "adventure"
-      : "aventura"
+    : null
 
-  const mockBooks = [
-    {
-      id: 101,
-      title: language === "English" ? "The Hidden Door" : "La puerta escondida",
-      author: "S. Morgan",
-      pages: 128,
-      genre: isBasedOnInterests
-        ? selectedInterest
-        : language === "English"
-          ? "Unexpected discovery"
-          : "Descubrimiento inesperado",
-      available: true,
-      coverEmoji: "🚪",
-      year: 2023,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? "A story chosen to help you discover something different."
-        : "Una historia elegida para ayudarte a descubrir algo diferente."
-    },
-    {
-      id: 102,
-      title: language === "English" ? "Moonlight Library" : "La biblioteca de la luna",
-      author: "R. Castillo",
-      pages: 214,
-      genre: isBasedOnInterests
-        ? selectedInterest
-        : language === "English"
-          ? "Fantasy"
-          : "Fantasía",
-      available: true,
-      coverEmoji: "🌙",
-      year: 2022,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? "A mysterious recommendation for curious readers."
-        : "Una recomendación misteriosa para lectores curiosos."
-    },
-    {
-      id: 103,
-      title: language === "English" ? "The Map Nobody Read" : "El mapa que nadie leyó",
-      author: "L. Méndez",
-      pages: 96,
-      genre: isBasedOnInterests
-        ? selectedInterest
-        : language === "English"
-          ? "Adventure"
-          : "Aventura",
-      available: false,
-      coverEmoji: "🗺️",
-      year: 2021,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? "A short book that invites readers to follow clues and take risks."
-        : "Un libro corto que invita a seguir pistas y tomar riesgos."
+  try {
+    const filters = isBasedOnInterests && selectedInterest
+      ? {
+          category: selectedInterest,
+          available: true
+        }
+      : {
+          available: true
+        }
+
+    const data = await getRecommendations(filters)
+
+    let books = data.recommendations || []
+
+    if (!isBasedOnInterests) {
+      books = [...books].sort(() => Math.random() - 0.5).slice(0, 3)
     }
-  ]
 
-  setRecommendedBooks(mockBooks)
-  setSelectedRoute("recommendations")
+    setRecommendationContext({
+      title: isBasedOnInterests
+        ? language === "English"
+          ? "Based on your interests"
+          : "Basado en tus intereses"
+        : language === "English"
+          ? "Something completely new"
+          : "Algo completamente nuevo",
+      description: isBasedOnInterests
+        ? language === "English"
+          ? `Based on: ${selectedInterest}`
+          : `Basado en: ${selectedInterest}`
+        : language === "English"
+          ? "A few available books outside a specific filter."
+          : "Algunos libros disponibles fuera de un filtro específico.",
+      source: "surprise",
+      suggestions: data.suggestions || []
+    })
+
+    setRecommendedBooks(books)
+    setSelectedRoute("recommendations")
+  } catch (error) {
+    console.error("Error al obtener sorpresa:", error)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? "Surprise error"
+        : "Error al sorprender",
+      description: language === "English"
+        ? "We could not load surprise recommendations right now."
+        : "No pudimos cargar recomendaciones sorpresa en este momento.",
+      source: "surprise",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+  }
 }
-  const handleStartKnownSearch = (searchData) => {
+  
+const handleStartKnownSearch = async (searchData) => {
   console.log("Búsqueda seleccionada:", searchData)
 
-  const mockBooks = [
-    {
-      id: 201,
-      title: language === "English" ? "The Secret Pages" : "Las páginas secretas",
-      author: "D. Herrera",
-      pages: 118,
-      genre: searchData.searchTypeTitle,
-      available: true,
-      coverEmoji: "📘",
-      year: 2020,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? `This recommendation is related to your search: "${searchData.query}".`
-        : `Esta recomendación está relacionada con tu búsqueda: "${searchData.query}".`
-    },
-    {
-      id: 202,
-      title: language === "English" ? "Clues in the Library" : "Pistas en la biblioteca",
-      author: "M. Torres",
-      pages: 156,
-      genre: searchData.searchTypeTitle,
-      available: true,
-      coverEmoji: "🔎",
-      year: 2021,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? `A possible match for: "${searchData.query}".`
-        : `Una posible coincidencia para: "${searchData.query}".`
-    },
-    {
-      id: 203,
-      title: language === "English" ? "A Book of Many Doors" : "Un libro de muchas puertas",
-      author: "L. Chen",
-      pages: 204,
-      genre: searchData.searchTypeTitle,
-      available: false,
-      coverEmoji: "🚪",
-      year: 2022,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? `This book may connect with the topic or keyword you entered.`
-        : `Este libro puede relacionarse con el tema o palabra clave que escribiste.`
-    }
-  ]
+  try {
+    const data = await getRecommendations({
+  search: searchData.query
+})
 
-  setRecommendedBooks(mockBooks)
-  setSelectedRoute("recommendations")
+    console.log("Respuesta del backend recommendations:", data)
+    console.log("Libros recibidos:", data.recommendations)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? `Results for: ${searchData.query}`
+        : `Resultados para: ${searchData.query}`,
+      description: language === "English"
+        ? `Search type: ${searchData.searchTypeTitle}`
+        : `Tipo de búsqueda: ${searchData.searchTypeTitle}`,
+      source: "known-search",
+      suggestions: data.suggestions || []
+    })
+
+    setRecommendedBooks(data.recommendations || [])
+    setSelectedRoute("recommendations")
+  } catch (error) {
+    console.error("Error al obtener recomendaciones:", error)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? "Search error"
+        : "Error en la búsqueda",
+      description: language === "English"
+        ? "We could not load recommendations right now."
+        : "No pudimos cargar recomendaciones en este momento.",
+      source: "known-search",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+  }
 }
 
-const handleStartCollectionSearch = (collectionData) => {
+const handleStartCollectionSearch = async (collectionData) => {
   console.log("Colección seleccionada:", collectionData)
 
-  const mockBooks = [
-    {
-      id: 301,
-      title: language === "English"
-        ? `${collectionData.collectionTitle}: Essential Readings`
-        : `${collectionData.collectionTitle}: lecturas esenciales`,
-      author: "ABC LRC",
-      pages: 124,
-      genre: collectionData.collectionTitle,
-      sublocation: collectionData.collectionTitle,
-      available: true,
-      coverEmoji: "📚",
-      sublocation: collectionData.collectionTitle,
-      callNumber: "FIC LRC",
-      isbn: "978-0000000000",
-      year: 2022,
-      location: language === "English" ? "LRC collection shelves" : "Colección del LRC",
-      summary: language === "English"
-        ? `A selected resource connected to the ${collectionData.collectionTitle} collection.`
-        : `Un recurso seleccionado relacionado con la colección ${collectionData.collectionTitle}.`
-    },
-    {
-      id: 302,
-      title: language === "English"
-        ? `Introduction to ${collectionData.collectionTitle}`
-        : `Introducción a ${collectionData.collectionTitle}`,
-      author: "LRC Research Guide",
-      pages: 96,
-      genre: collectionData.collectionTitle,
-      sublocation: collectionData.collectionTitle,
-      available: true,
-      coverEmoji: "📝",
-      sublocation: collectionData.collectionTitle,
-      callNumber: "REF LRC",
-      isbn: "978-0000000000",
-      year: 2021,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? "A useful starting point for research, class assignments, or academic exploration."
-        : "Un buen punto de partida para investigación, tareas o exploración académica."
-    },
-    {
-      id: 303,
-      title: language === "English"
-        ? `Stories and Contexts: ${collectionData.collectionTitle}`
-        : `Historias y contextos: ${collectionData.collectionTitle}`,
-      author: "Academic Collection",
-      pages: 210,
-      genre: collectionData.collectionTitle,
-      sublocation: collectionData.collectionTitle,
-      available: false,
-      coverEmoji: "🔎",
-      sublocation: collectionData.collectionTitle,
-      callNumber: "NF LRC",
-      isbn: "978-0000000000",
-      year: 2020,
-      location: language === "English" ? "LRC shelves" : "Estantería del LRC",
-      summary: language === "English"
-        ? "A related resource that may support deeper reading and classroom projects."
-        : "Un recurso relacionado que puede apoyar lecturas más profundas y proyectos de clase."
-    }
-  ]
+  try {
+    const data = await getRecommendations({
+      sublocation: collectionData.sublocation || collectionData.collectionTitle,
+      available: true
+    })
 
-  setRecommendedBooks(mockBooks)
-  setSelectedRoute("recommendations")
+    setRecommendationContext({
+      title: language === "English"
+        ? `Resources from ${collectionData.collectionTitle}`
+        : `Recursos de ${collectionData.collectionTitle}`,
+      description: language === "English"
+        ? "Results from this LRC sublocation."
+        : "Resultados de esta sublocation del LRC.",
+      source: "lrc-collection",
+      suggestions: data.suggestions || []
+    })
+
+    setRecommendedBooks(data.recommendations || [])
+    setSelectedRoute("recommendations")
+  } catch (error) {
+    console.error("Error al obtener recomendaciones:", error)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? "Collection error"
+        : "Error en la colección",
+      description: language === "English"
+        ? "We could not load recommendations right now."
+        : "No pudimos cargar recomendaciones en este momento.",
+      source: "lrc-collection",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+  }
 }
 
   if (!user) {
@@ -474,8 +440,34 @@ const handleStartCollectionSearch = (collectionData) => {
         <RecommendationsView
           language={language}
           books={recommendedBooks}
-          onBack={() => setSelectedRoute(null)}
-        />
+          context={recommendationContext}
+          onBack={() => {
+            if (recommendationContext?.source === "lrc-collection") {
+              setSelectedRoute("assignment")
+            } else if (recommendationContext?.source === "independent-reading") {
+              setSelectedRoute("independent-reading")
+            } else if (recommendationContext?.source === "known-search") {
+              setSelectedRoute("known-search")
+            } else if (recommendationContext?.source === "surprise") {
+              setSelectedRoute("surprise")
+            } else {
+              setSelectedRoute(null)
+            }
+          }}
+          onMoreOptions={() => {
+            if (recommendationContext?.source === "lrc-collection") {
+              setSelectedRoute("assignment")
+            } else if (recommendationContext?.source === "independent-reading") {
+              setSelectedRoute("independent-reading")
+            } else if (recommendationContext?.source === "known-search") {
+              setSelectedRoute("known-search")
+            } else if (recommendationContext?.source === "surprise") {
+              setSelectedRoute("surprise")
+            } else {
+              setSelectedRoute(null)
+    }
+  }}
+/>
       ) : (
         <>
             {/* Top Header */}

@@ -64,19 +64,20 @@ function SurpriseMe({
           </h3>
 
           <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-            {hasInterests
-              ? isEnglish
-                ? "Use your recent interests to suggest something new."
-                : "Usa tus intereses recientes para sugerir algo nuevo."
-              : isEnglish
-                ? "Choose some interests first in Independent reading."
-                : "Primero elige algunos intereses en Lectura independiente."}
-          {selectedInterest && (
+          {hasInterests
+            ? isEnglish
+              ? "Use your recent interests to suggest something new."
+              : "Usa tus intereses recientes para sugerir algo nuevo."
+            : isEnglish
+              ? "Choose some interests first in Independent reading."
+              : "Primero elige algunos intereses en Lectura independiente."}
+        </p>
+
+        {selectedInterest && (
           <p className="mt-4 rounded-xl bg-violet-50 px-3 py-2 text-sm font-semibold text-indigo-950">
             {isEnglish ? "Based on:" : "Basado en:"} {selectedInterest}
           </p>
         )}
-          </p>
         </button>
 
         <button

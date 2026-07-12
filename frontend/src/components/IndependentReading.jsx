@@ -10,6 +10,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "mystery",
     icon: "🕵️",
+    apiCategory: "Resolver un misterio",
     title: isEnglish ? "Solve a mystery" : "Resolver un misterio",
     description: isEnglish
       ? "Secrets, clues, investigations, and unexpected endings."
@@ -18,6 +19,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "fantasy",
     icon: "🐉",
+    apiCategory: "Fantasía y magia",
     title: isEnglish ? "Fantasy and magic" : "Fantasía y magia",
     description: isEnglish
       ? "Magic worlds, creatures, quests, and adventure."
@@ -26,6 +28,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "science-fiction",
     icon: "🚀",
+    apiCategory: "Explorar otros mundos",
     title: isEnglish ? "Explore other worlds" : "Explorar otros mundos",
     description: isEnglish
       ? "Technology, space, futures, and big ideas."
@@ -34,6 +37,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "adventure",
     icon: "🧭",
+    apiCategory: "Aventura y acción",
     title: isEnglish ? "Adventure and action" : "Aventura y acción",
     description: isEnglish
       ? "Fast-paced stories with journeys, danger, and challenges."
@@ -42,6 +46,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "historical-fiction",
     icon: "🏛️",
+    apiCategory: "Eventos del pasado",
     title: isEnglish ? "Events from the past" : "Eventos del pasado",
     description: isEnglish
       ? "Stories connected to historical moments and places."
@@ -50,6 +55,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "sports",
     icon: "🏀",
+    apiCategory: "Deportes y competencia",
     title: isEnglish ? "Sports and competition" : "Deportes y competencia",
     description: isEnglish
       ? "Teams, goals, effort, rivalry, and personal growth."
@@ -58,6 +64,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "graphic-novel",
     icon: "💬",
+    apiCategory: "Novelas gráficas",
     title: isEnglish ? "Graphic novels" : "Novelas gráficas",
     description: isEnglish
       ? "Stories told with panels, dialogue, and visual sequences."
@@ -66,6 +73,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "dystopia",
     icon: "👁️",
+    apiCategory: "Sociedades vigiladas",
     title: isEnglish ? "Controlled societies" : "Sociedades vigiladas",
     description: isEnglish
       ? "Rules, surveillance, rebellion, and uncertain futures."
@@ -74,6 +82,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "romance",
     icon: "❤️",
+    apiCategory: "Amor y emociones",
     title: isEnglish ? "Love and emotions" : "Amor y emociones",
     description: isEnglish
       ? "Relationships, feelings, friendship, and personal choices."
@@ -82,6 +91,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   {
     id: "horror",
     icon: "🧛",
+    apiCategory: "Horror y suspenso",
     title: isEnglish ? "Horror and suspense" : "Horror y suspenso",
     description: isEnglish
       ? "Dark places, fear, mystery, and tense moments."
@@ -92,6 +102,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   const lengths = [
   {
     id: "short",
+    apiLength: "Corto",
     title: isEnglish ? "Short" : "Corto",
     description: isEnglish
       ? "100 pages or fewer."
@@ -99,6 +110,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   },
   {
     id: "medium",
+    apiLength: "Medio",
     title: isEnglish ? "Medium" : "Medio",
     description: isEnglish
       ? "101 to 200 pages."
@@ -106,6 +118,7 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   },
   {
     id: "long",
+    apiLength: "Largo",
     title: isEnglish ? "Long" : "Largo",
     description: isEnglish
       ? "More than 200 pages."
@@ -125,15 +138,17 @@ function IndependentReading({ language, user, onBack, onStartRecommendations }) 
   )
 
   onStartRecommendations({
-    route: "independent-reading",
-    category: selectedCategory,
-    categoryTitle: category.title,
-    length: selectedLength,
-    lengthTitle: length.title,
-    lengthDescription: length.description,
-    grade: user?.grade,
-    is_staff: user?.is_staff
-  })
+  route: "independent-reading",
+  category: selectedCategory,
+  categoryTitle: category.title,
+  apiCategory: category.apiCategory,
+  length: selectedLength,
+  lengthTitle: length.title,
+  apiLength: length.apiLength,
+  lengthDescription: length.description,
+  grade: user?.grade,
+  is_staff: user?.is_staff
+})
 }
 
   return (

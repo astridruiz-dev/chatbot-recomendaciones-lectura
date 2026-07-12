@@ -1,0 +1,21 @@
+const API_URL = "http://127.0.0.1:8000/api/v1/recommendations/"
+
+export async function getRecommendations(filters = {}) {
+  const params = new URLSearchParams()
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.append(key, value)
+    }
+  })
+
+  const response = await fetch(`${API_URL}?${params.toString()}`)
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.detail || "No se pudieron obtener recomendaciones")
+  }
+
+  return data
+}

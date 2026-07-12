@@ -57,7 +57,7 @@ def health_check():
 
 # Conectar routers
 app.include_router(books_router)
-app.include_router(recommendations_router)
+app.include_router(recommendations_router, prefix="/api/v1")
 app.include_router(chat_router)
 app.include_router(follett_router, prefix="/api/v1")
 app.include_router(users_router)

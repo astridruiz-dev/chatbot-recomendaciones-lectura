@@ -4,6 +4,7 @@ function BookDetailModal({
   onClose,
   onInterested,
   onAddToList,
+  onMoreOptions,
   isSaved
 }) {
   if (!book) return null
@@ -147,7 +148,7 @@ function BookDetailModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={onMoreOptions}
             className="rounded-xl bg-violet-100 px-4 py-3 text-sm font-semibold text-indigo-950 hover:bg-violet-200"
           >
             {isEnglish ? "See more options" : "Ver más opciones"}

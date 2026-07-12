@@ -2,8 +2,20 @@ import { useState } from "react"
 import BookCard from "./BookCard"
 import BookDetailModal from "./BookDetailModal"
 
-function RecommendationsView({ language, books, onBack }) {
+function RecommendationsView({ language, books, context, onBack, onMoreOptions }) {
   const isEnglish = language === "English"
+
+  const title = context?.title || (isEnglish ? "Recommended books" : "Libros recomendados")
+
+  const description = context?.description || (
+  isEnglish
+    ? "Here are three options based on your choices."
+    : "Aquí tienes tres opciones según tus elecciones."
+  )
+
+  const suggestions = context?.suggestions || []
+  const hasBooks = books.length > 0
+  const hasSuggestions = suggestions.length > 0
 
   const [selectedBook, setSelectedBook] = useState(null)
   const [readingList, setReadingList] = useState([])
@@ -44,6 +56,16 @@ function RecommendationsView({ language, books, onBack }) {
     setSelectedBook(null)
   }
 
+  function handleMoreOptions() {
+  setSelectedBook(null)
+
+  if (onMoreOptions) {
+    onMoreOptions()
+  } else {
+    onBack()
+  }
+}
+
   const isSelectedBookSaved = selectedBook
     ? readingList.some((book) => book.id === selectedBook.id)
     : false
@@ -61,13 +83,11 @@ function RecommendationsView({ language, books, onBack }) {
 
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-slate-800">
-          {isEnglish ? "Recommended books" : "Libros recomendados"}
+          {title}
         </h2>
 
         <p className="mt-3 text-slate-500">
-          {isEnglish
-            ? "Here are three options based on your choices."
-            : "Aquí tienes tres opciones según tus elecciones."}
+          {description}
         </p>
 
         <p className="mt-2 text-sm text-indigo-700 font-semibold">
@@ -87,16 +107,53 @@ function RecommendationsView({ language, books, onBack }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {books.map((book) => (
-          <BookCard
-            key={book.id}
-            book={book}
-            language={language}
-            onViewDetails={setSelectedBook}
-          />
-        ))}
-      </div>
+      {!hasBooks && (
+        <div className="rounded-3xl border border-violet-100 bg-white p-8 text-center shadow-sm">
+          <h3 className="text-xl font-bold text-indigo-950">
+            {isEnglish
+              ? "No books found"
+              : "No se encontraron libros"}
+          </h3>
+
+          <p className="mt-3 text-slate-500">
+            {isEnglish
+              ? "Try another word, author, topic or category."
+              : "Prueba con otra palabra, autor, tema o categoría."}
+          </p>
+
+      {hasSuggestions && (
+        <div className="mt-6">
+          <p className="text-sm font-bold text-indigo-950 mb-3">
+            {isEnglish ? "Did you mean...?" : "¿Quisiste decir...?"}
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-3">
+            {suggestions.map((suggestion) => (
+              <span
+                key={suggestion}
+                className="rounded-full bg-violet-100 px-4 py-2 text-sm font-semibold text-indigo-950"
+              >
+                {suggestion}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )}
+
+      {hasBooks && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {books.map((book) => (
+            <BookCard
+              key={book.id}
+              book={book}
+              language={language}
+              onViewDetails={setSelectedBook}
+            />
+          ))}
+        </div>
+)}
 
       <BookDetailModal
         book={selectedBook}
@@ -104,6 +161,7 @@ function RecommendationsView({ language, books, onBack }) {
         onClose={() => setSelectedBook(null)}
         onInterested={handleInterested}
         onAddToList={handleAddToList}
+        onMoreOptions={handleMoreOptions}
         isSaved={isSelectedBookSaved}
       />
 
