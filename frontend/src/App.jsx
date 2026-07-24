@@ -8,7 +8,12 @@ import RecommendationsView from "./components/RecommendationsView"
 import SurpriseMe from "./components/SurpriseMe"
 import KnownSearch from "./components/KnownSearch"
 import AssignmentCollections from "./components/AssignmentCollections"
-import { getRecommendations } from "./services/recommendationService"
+import ProfileView from "./components/ProfileView"
+import BookDetailModal from "./components/BookDetailModal"
+import {
+  getRecommendations,
+  getPopularBooksByGrade
+} from "./services/recommendationService"
 
 function App() {
 
@@ -19,7 +24,9 @@ function App() {
   const [language, setLanguage] = useState("Spanish")
   const [recommendedBooks, setRecommendedBooks] = useState([])
   const [favoriteCategories, setFavoriteCategories] = useState([])
+  const [readingList, setReadingList] = useState([])
   const [messages, setMessages] = useState([])
+  const [profileSelectedBook, setProfileSelectedBook] = useState(null)
   const [recommendationContext, setRecommendationContext] = useState(null)
 
 const texts = {
@@ -129,40 +136,122 @@ const t = texts[language]
       
   }
       const handleSelectRoute = (routeId) => {
+  if (routeId === "popular-grade") {
+    handlePopularByGrade()
+    return
+  }
+
   setSelectedRoute(routeId)
 }
 
-      const saveFavoriteCategory = (categoryTitle) => {
+const handleCloseProfileBookModal = () => {
+  setProfileSelectedBook(null)
+}
+
+const handleAddToReadingList = (book) => {
+  setReadingList((prev) => {
+    const alreadySaved = prev.some(
+      (savedBook) => savedBook.id === book.id
+    )
+
+    if (alreadySaved) {
+      return prev
+    }
+
+    return [...prev, book]
+  })
+}
+
+const handlePopularByGrade = async () => {
+  if (!user?.grade) {
+    setRecommendationContext({
+      title: language === "English"
+        ? "Grade not available"
+        : "Grado no disponible",
+      description: language === "English"
+        ? "We could not detect your grade from your profile."
+        : "No pudimos detectar tu grado desde tu perfil.",
+      source: "popular-grade",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+    return
+  }
+
+  try {
+    const data = await getPopularBooksByGrade(user.grade)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? `Most read by students in Grade ${user.grade}`
+        : `Más leído por estudiantes de ${user.grade}.º grado`,
+      description: language === "English"
+        ? "Based on a simulated popularity list for this MVP."
+        : "Basado en una lista simulada de popularidad para este MVP.",
+      source: "popular-grade",
+      suggestions: []
+    })
+
+    setRecommendedBooks(data.recommendations || [])
+    setSelectedRoute("recommendations")
+  } catch (error) {
+    console.error("Error al obtener libros populares por grado:", error)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? "Popular books unavailable"
+        : "No se pudieron cargar los libros populares",
+      description: language === "English"
+        ? "Please try again later."
+        : "Intenta nuevamente más tarde.",
+      source: "popular-grade",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+  }
+}
+
+      const saveFavoriteCategory = (categoryTitle, apiCategory) => {
   setFavoriteCategories((prev) => {
     const existingCategory = prev.find(
-      (category) => category.title === categoryTitle
+      (category) => category.apiCategory === apiCategory
+    )
+
+    const otherCategories = prev.filter(
+      (category) => category.apiCategory !== apiCategory
     )
 
     if (existingCategory) {
-      return prev.map((category) =>
-        category.title === categoryTitle
-          ? {
-              ...category,
-              count: category.count + 1
-            }
-          : category
-      )
+      return [
+        {
+          ...existingCategory,
+          title: categoryTitle,
+          apiCategory,
+          count: existingCategory.count + 1
+        },
+        ...otherCategories
+      ]
     }
 
     return [
-      ...prev,
       {
         title: categoryTitle,
+        apiCategory,
         count: 1
-      }
+      },
+      ...prev
     ]
   })
 }
   const handleStartRecommendations = async (preferences) => {
   console.log("Preferencias seleccionadas:", preferences)
 
-  saveFavoriteCategory(preferences.categoryTitle)
-  console.log("Guardando categoría:", preferences.categoryTitle)
+  saveFavoriteCategory(preferences.categoryTitle, preferences.apiCategory)
+  console.log("Guardando categoría:", preferences.categoryTitle, preferences.apiCategory)
 
   try {
     const data = await getRecommendations({
@@ -204,17 +293,21 @@ const t = texts[language]
   }
 }
 
+const handleBackToMenu = () => {
+  setSelectedRoute(null)
+}
+
 const handleStartSurprise = async (surpriseType) => {
   const isBasedOnInterests = surpriseType === "based-on-interests"
 
   const selectedInterest = favoriteCategories.length > 0
-    ? favoriteCategories[0].title
+    ? favoriteCategories[0]
     : null
 
   try {
     const filters = isBasedOnInterests && selectedInterest
       ? {
-          category: selectedInterest,
+          category: selectedInterest.apiCategory,
           available: true
         }
       : {
@@ -237,10 +330,10 @@ const handleStartSurprise = async (surpriseType) => {
         : language === "English"
           ? "Something completely new"
           : "Algo completamente nuevo",
-      description: isBasedOnInterests
+      description: isBasedOnInterests && selectedInterest
         ? language === "English"
-          ? `Based on: ${selectedInterest}`
-          : `Basado en: ${selectedInterest}`
+          ? `Based on: ${selectedInterest.title}`
+          : `Basado en: ${selectedInterest.title}`
         : language === "English"
           ? "A few available books outside a specific filter."
           : "Algunos libros disponibles fuera de un filtro específico.",
@@ -312,22 +405,83 @@ const handleStartKnownSearch = async (searchData) => {
   }
 }
 
-const handleStartCollectionSearch = async (collectionData) => {
-  console.log("Colección seleccionada:", collectionData)
+const handleSuggestionClick = async (suggestion) => {
+  console.log("Sugerencia seleccionada:", suggestion)
 
   try {
     const data = await getRecommendations({
-      sublocation: collectionData.sublocation || collectionData.collectionTitle,
-      available: true
+      search: suggestion
     })
 
     setRecommendationContext({
       title: language === "English"
-        ? `Resources from ${collectionData.collectionTitle}`
-        : `Recursos de ${collectionData.collectionTitle}`,
+        ? `Results for: ${suggestion}`
+        : `Resultados para: ${suggestion}`,
       description: language === "English"
-        ? "Results from this LRC sublocation."
-        : "Resultados de esta sublocation del LRC.",
+        ? "Search based on a suggested term."
+        : "Búsqueda basada en una sugerencia.",
+      source: "known-search",
+      suggestions: data.suggestions || []
+    })
+
+    setRecommendedBooks(data.recommendations || [])
+    setSelectedRoute("recommendations")
+  } catch (error) {
+    console.error("Error al buscar sugerencia:", error)
+
+    setRecommendationContext({
+      title: language === "English"
+        ? "Search error"
+        : "Error en la búsqueda",
+      description: language === "English"
+        ? "We could not load recommendations right now."
+        : "No pudimos cargar recomendaciones en este momento.",
+      source: "known-search",
+      suggestions: []
+    })
+
+    setRecommendedBooks([])
+    setSelectedRoute("recommendations")
+  }
+}
+
+ const handleStartCollectionSearch = async (collectionData) => {
+  console.log("Colección o tema seleccionado:", collectionData)
+
+  const isTaskTopicSearch = collectionData.searchMode === "task-topic"
+
+  try {
+    const filters = isTaskTopicSearch
+      ? {
+          search: collectionData.taskTopic || collectionData.query,
+          available: true
+        }
+      : {
+          sublocation: collectionData.sublocation || collectionData.collectionTitle,
+          available: true
+        }
+
+    console.log("Filtros enviados al backend:", filters)
+
+    const data = await getRecommendations(filters)
+
+    console.log("Respuesta de búsqueda LRC:", data)
+
+    setRecommendationContext({
+      title: isTaskTopicSearch
+        ? language === "English"
+          ? `Resources for: ${collectionData.taskTopic}`
+          : `Recursos para: ${collectionData.taskTopic}`
+        : language === "English"
+          ? `Resources from ${collectionData.collectionTitle}`
+          : `Recursos de ${collectionData.collectionTitle}`,
+      description: isTaskTopicSearch
+        ? language === "English"
+          ? "Results based on the assignment topic."
+          : "Resultados basados en el tema de la tarea."
+        : language === "English"
+          ? "Results from this LRC sublocation."
+          : "Resultados de esta sublocation del LRC.",
       source: "lrc-collection",
       suggestions: data.suggestions || []
     })
@@ -335,15 +489,15 @@ const handleStartCollectionSearch = async (collectionData) => {
     setRecommendedBooks(data.recommendations || [])
     setSelectedRoute("recommendations")
   } catch (error) {
-    console.error("Error al obtener recomendaciones:", error)
+    console.error("Error al obtener recursos del LRC:", error)
 
     setRecommendationContext({
       title: language === "English"
-        ? "Collection error"
-        : "Error en la colección",
+        ? "LRC search error"
+        : "Error al buscar recursos del LRC",
       description: language === "English"
-        ? "We could not load recommendations right now."
-        : "No pudimos cargar recomendaciones en este momento.",
+        ? "We could not load resources right now."
+        : "No pudimos cargar recursos en este momento.",
       source: "lrc-collection",
       suggestions: []
     })
@@ -376,7 +530,7 @@ const handleStartCollectionSearch = async (collectionData) => {
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
 
         <select
           value={language}
@@ -387,9 +541,44 @@ const handleStartCollectionSearch = async (collectionData) => {
           <option value="English">English</option>
         </select>
 
-        <div className="bg-indigo-900 rounded-xl px-4 py-2 text-violet-100">
+ 
+         <button
+  type="button"
+  onClick={() => setSelectedRoute("profile")}
+  className="
+    bg-indigo-900
+    rounded-xl
+    h-10
+    w-10
+    outline-none
+    text-white
+    hover:bg-indigo-800
+    transition
+    flex
+    items-center
+    justify-center
+  "
+  title={language === "English" ? "My profile" : "Mi perfil"}
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="h-5 w-5 text-white"
+  >
+    <path
+      fillRule="evenodd"
+      d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+      clipRule="evenodd"
+    />
+  </svg>
+</button>
+
+        <div className="bg-indigo-900 rounded-xl h-10 px-4 flex items-center text-violet-100">
           {userDescription}
         </div>
+
+
 
       </div>
     </header>
@@ -436,7 +625,18 @@ const handleStartCollectionSearch = async (collectionData) => {
           onStartCollectionSearch={handleStartCollectionSearch}
         />
 
-      ) : selectedRoute === "recommendations" ? (
+      ) : selectedRoute === "profile" ? (
+      
+        <ProfileView
+          language={language}
+          user={user}
+          readingList={readingList}
+          favoriteCategories={favoriteCategories}
+          onBack={handleBackToMenu}
+          onViewBook={setProfileSelectedBook}
+/>
+
+    ) : selectedRoute === "recommendations" ? (
         <RecommendationsView
           language={language}
           books={recommendedBooks}
@@ -465,9 +665,12 @@ const handleStartCollectionSearch = async (collectionData) => {
               setSelectedRoute("surprise")
             } else {
               setSelectedRoute(null)
-    }
-  }}
-/>
+            }
+          }}
+          onSuggestionClick={handleSuggestionClick}
+          readingList={readingList}
+          onAddToReadingList={handleAddToReadingList}
+        />
       ) : (
         <>
             {/* Top Header */}
@@ -560,6 +763,25 @@ const handleStartCollectionSearch = async (collectionData) => {
       </div>
 
     </main>
+
+     <BookDetailModal
+                book={profileSelectedBook}
+                language={language}
+                onClose={handleCloseProfileBookModal}
+                onInterested={() => {
+                  setProfileSelectedBook(null)
+                }}
+                onAddToList={handleAddToReadingList}
+                onMoreOptions={() => {
+                  setProfileSelectedBook(null)
+                  setSelectedRoute(null)
+                }}
+                isSaved={
+                  profileSelectedBook
+                    ? readingList.some((book) => book.id === profileSelectedBook.id)
+                    : false
+                }
+              />
 
   </div>
 )

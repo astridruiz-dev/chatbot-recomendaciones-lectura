@@ -10,6 +10,7 @@ function AssignmentCollections({
   const isStaff = user?.is_staff
 
   const [searchText, setSearchText] = useState("")
+  const [taskTopic, setTaskTopic] = useState("")
 
   const collectionGroups = [
     {
@@ -113,6 +114,21 @@ function AssignmentCollections({
       .replaceAll("'", "")
   }
 
+  function handleTaskTopicSearch(event) {
+  event.preventDefault()
+
+  if (!taskTopic.trim()) return
+
+  onStartCollectionSearch({
+    route: isStaff ? "lrc-collections" : "assignment",
+    searchMode: "task-topic",
+    collectionTitle: taskTopic.trim(),
+    query: taskTopic.trim(),
+    taskTopic: taskTopic.trim(),
+    isStaff
+  })
+}
+
   function handleSelectCollection(collection) {
     onStartCollectionSearch({
       route: isStaff ? "lrc-collections" : "assignment",
@@ -157,9 +173,57 @@ function AssignmentCollections({
         </p>
       </div>
 
+      <form
+        onSubmit={handleTaskTopicSearch}
+        className="mb-8 rounded-3xl border border-violet-100 bg-white p-5 shadow-sm"
+      >
+        <label className="block text-sm font-bold text-indigo-950 mb-3">
+          {isEnglish ? "Search by assignment topic" : "Buscar por tema de tarea"}
+        </label>
+
+        <p className="mb-4 text-sm text-slate-500 leading-relaxed">
+          {isEnglish
+            ? "Write the topic you are researching. You do not need to know the LRC collection name."
+            : "Escribe el tema que estás investigando. No necesitas conocer el nombre de la colección del LRC."}
+        </p>
+
+        <div className="flex flex-col md:flex-row gap-3">
+          <input
+            type="text"
+            value={taskTopic}
+            onChange={(event) => setTaskTopic(event.target.value)}
+            placeholder={
+              isEnglish
+                ? "Example: photosynthesis, World War II, volcanoes..."
+                : "Ejemplo: fotosíntesis, World War II, volcanes..."
+            }
+            className="flex-1 rounded-2xl border border-violet-100 px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-200"
+          />
+
+          <button
+            type="submit"
+            disabled={!taskTopic.trim()}
+            className="
+              rounded-2xl
+              bg-indigo-950
+              px-8
+              py-3
+              font-semibold
+              text-white
+              shadow-md
+              hover:bg-indigo-900
+              disabled:opacity-40
+              disabled:cursor-not-allowed
+            "
+          >
+            {isEnglish ? "Search topic" : "Buscar tema"}
+          </button>
+        </div>
+      </form>
+
       <div className="mb-8 rounded-3xl border border-violet-100 bg-white p-5 shadow-sm">
         <label className="block text-sm font-bold text-indigo-950 mb-3">
-          {isEnglish ? "Search collection" : "Buscar colección"}
+          {isEnglish ? "Filter LRC collections" : "Filtrar colecciones del LRC"}
         </label>
 
         <input

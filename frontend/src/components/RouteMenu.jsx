@@ -41,7 +41,8 @@ function RouteMenu({ language, user, favoriteCategories, onSelectRoute }) {
 
     popular: isEnglish
       ? "Most read by students in your grade"
-      : "Más leído por estudiantes de tu grado"
+      : "Más leído por estudiantes de tu grado",
+      
   }
 
   const routes = [

@@ -10,7 +10,7 @@ load_dotenv()
 
 
 def verify_google_token(credential: str) -> str:
-    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 
     if not google_client_id:
         raise HTTPException(
@@ -39,5 +39,5 @@ def verify_google_token(credential: str) -> str:
     except ValueError:
         raise HTTPException(
             status_code=401,
-            detail="Token de Google inválido"
+            detail="No se pudo validar el inicio de sesión con Google. Verifica la hora del sistema e intenta nuevamente."
         )

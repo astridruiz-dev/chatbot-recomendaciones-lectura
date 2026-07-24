@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Query
 
-from app.services.recommendation_service import get_recommendation_response
+from app.services.recommendation_service import (
+    get_recommendation_response,
+    get_popular_books_by_grade_response
+)
 
 router = APIRouter(
     prefix="/recommendations",
@@ -27,3 +30,7 @@ async def list_recommendations(
     available=available,
     sublocation=sublocation
 )
+
+@router.get("/popular-by-grade")
+async def popular_books_by_grade(grade: int):
+    return get_popular_books_by_grade_response(grade)

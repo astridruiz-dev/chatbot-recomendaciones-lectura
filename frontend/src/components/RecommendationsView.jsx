@@ -2,7 +2,17 @@ import { useState } from "react"
 import BookCard from "./BookCard"
 import BookDetailModal from "./BookDetailModal"
 
-function RecommendationsView({ language, books, context, onBack, onMoreOptions }) {
+function RecommendationsView({
+  language,
+  books,
+  context,
+  readingList,
+  onAddToReadingList,
+  onBack,
+  onMoreOptions,
+  onSuggestionClick
+}) {
+
   const isEnglish = language === "English"
 
   const title = context?.title || (isEnglish ? "Recommended books" : "Libros recomendados")
@@ -15,28 +25,117 @@ function RecommendationsView({ language, books, context, onBack, onMoreOptions }
 
   const suggestions = context?.suggestions || []
   const hasBooks = books.length > 0
-  const hasSuggestions = suggestions.length > 0
+  const safeReadingList = readingList || []
+
+  function getSuggestionLabel(suggestion) {
+  const normalizedSuggestion = suggestion
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  const suggestionLabels = {
+    fantasia: {
+      es: "Fantasía y magia",
+      en: "Fantasy and magic"
+    },
+    "fantasia y magia": {
+      es: "Fantasía y magia",
+      en: "Fantasy and magic"
+    },
+    distopia: {
+      es: "Distopía",
+      en: "Dystopia"
+    },
+    grafica: {
+      es: "Novelas gráficas",
+      en: "Graphic novels"
+    },
+    "novelas graficas": {
+      es: "Novelas gráficas",
+      en: "Graphic novels"
+    },
+    guerra: {
+      es: "Guerra / eventos del pasado",
+      en: "War / historical events"
+    },
+    historia: {
+      es: "Historia",
+      en: "History"
+    },
+    misterio: {
+      es: "Misterio",
+      en: "Mystery"
+    },
+    amor: {
+      es: "Amor y emociones",
+      en: "Love and emotions"
+    },
+    amistad: {
+      es: "Amistad",
+      en: "Friendship"
+    }
+  }
+
+  const label = suggestionLabels[normalizedSuggestion]
+
+  if (!label) {
+    return suggestion
+  }
+
+  return isEnglish ? label.en : label.es
+}
 
   const [selectedBook, setSelectedBook] = useState(null)
-  const [readingList, setReadingList] = useState([])
   const [statusMessage, setStatusMessage] = useState("")
 
+  function getUniqueSuggestions() {
+  const seenLabels = new Set()
+
+  return suggestions.filter((suggestion) => {
+    const label = getSuggestionLabel(suggestion)
+    const normalizedLabel = label
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+
+    if (seenLabels.has(normalizedLabel)) {
+      return false
+    }
+
+    seenLabels.add(normalizedLabel)
+    return true
+  })
+}
+
+const uniqueSuggestions = getUniqueSuggestions()
+const hasSuggestions = uniqueSuggestions.length > 0
+
   function handleAddToList(book) {
-    const alreadySaved = readingList.some(
-      (savedBook) => savedBook.id === book.id
-    )
+  const alreadySaved = safeReadingList.some(
+    (savedBook) => savedBook.id === book.id
+  )
 
-    if (alreadySaved) return
-
-    setReadingList((prev) => [...prev, book])
-
+  if (alreadySaved) {
     setStatusMessage(
       isEnglish
-        ? `"${book.title}" was added to your reading list.`
-        : `"${book.title}" fue agregado a tu lista de lectura.`
+        ? `"${book.title}" is already in your reading list.`
+        : `"${book.title}" ya está en tu lista de lectura.`
     )
+
     setSelectedBook(null)
+    return
   }
+
+  onAddToReadingList(book)
+
+  setStatusMessage(
+    isEnglish
+      ? `"${book.title}" was added to your reading list.`
+      : `"${book.title}" fue agregado a tu lista de lectura.`
+  )
+
+  setSelectedBook(null)
+}
 
   function handleInterested(book) {
     if (book.available) {
@@ -67,7 +166,7 @@ function RecommendationsView({ language, books, context, onBack, onMoreOptions }
 }
 
   const isSelectedBookSaved = selectedBook
-    ? readingList.some((book) => book.id === selectedBook.id)
+    ? safeReadingList.some((book) => book.id === selectedBook.id)
     : false
 
   return (
@@ -92,12 +191,12 @@ function RecommendationsView({ language, books, context, onBack, onMoreOptions }
 
         <p className="mt-2 text-sm text-indigo-700 font-semibold">
           {isEnglish
-            ? readingList.length === 1
+            ? safeReadingList.length === 1
               ? "1 book in your reading list"
-              : `${readingList.length} books in your reading list`
-            : readingList.length === 1
+              : `${safeReadingList.length} books in your reading list`
+            : safeReadingList.length === 1
               ? "1 libro en tu lista de lectura"
-              : `${readingList.length} libros en tu lista de lectura`}
+              : `${safeReadingList.length} libros en tu lista de lectura`}
         </p>
       </div>
 
@@ -128,14 +227,26 @@ function RecommendationsView({ language, books, context, onBack, onMoreOptions }
           </p>
 
           <div className="flex flex-wrap justify-center gap-3">
-            {suggestions.map((suggestion) => (
-              <span
-                key={suggestion}
-                className="rounded-full bg-violet-100 px-4 py-2 text-sm font-semibold text-indigo-950"
-              >
-                {suggestion}
-              </span>
-            ))}
+            {uniqueSuggestions.map((suggestion) => (
+  <button
+    key={suggestion}
+    type="button"
+    onClick={() => onSuggestionClick(suggestion)}
+    className="
+      rounded-full
+      bg-violet-100
+      px-4
+      py-2
+      text-sm
+      font-semibold
+      text-indigo-950
+      hover:bg-violet-200
+      transition
+    "
+  >
+    {getSuggestionLabel(suggestion)}
+  </button>
+))}
           </div>
         </div>
       )}

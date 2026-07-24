@@ -4,7 +4,8 @@ from app.services.follett_service import (
     get_follett_access_token,
     get_follett_status,
     get_follett_sites,
-    get_secondary_lrc_site
+    get_secondary_lrc_site,
+    search_self_service_titles
 )
 
 router = APIRouter(
@@ -53,4 +54,15 @@ async def test_secondary_lrc_site():
         "status": "ok",
         "message": "Site de secundaria LRC consultado correctamente",
         "site": site
+    }
+
+@router.get("/self-service/titles")
+async def test_self_service_titles(search: str = "dragon"):
+    titles = await search_self_service_titles(search=search, limit=10)
+
+    return {
+        "status": "ok",
+        "message": "Títulos de Self-Service consultados correctamente",
+        "search": search,
+        "titles": titles
     }

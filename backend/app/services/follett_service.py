@@ -12,6 +12,8 @@ def get_follett_settings():
     api_base_path = os.getenv("FOLLETT_API_BASE_PATH")
     client_id = os.getenv("FOLLETT_CLIENT_ID")
     client_secret = os.getenv("FOLLETT_CLIENT_SECRET")
+    principal_id = os.getenv("FOLLETT_PRINCIPAL_ID")
+    secondary_site_id = os.getenv("FOLLETT_SECONDARY_SITE_ID", "101")
 
     missing_values = []
 
@@ -37,7 +39,9 @@ def get_follett_settings():
         "base_url": base_url.rstrip("/"),
         "api_base_path": api_base_path,
         "client_id": client_id,
-        "client_secret": client_secret
+        "client_secret": client_secret,
+        "principal_id": principal_id,
+        "secondary_site_id": secondary_site_id
     }
 
 
@@ -158,4 +162,27 @@ async def get_secondary_lrc_site():
     raise HTTPException(
         status_code=404,
         detail="No se encontró el site de secundaria Academia Britanica Cuscatleca-LRC"
+    )
+
+async def search_self_service_titles(search: str = "dragon", limit: int = 10):
+    settings = get_follett_settings()
+
+    principal_id = settings.get("principal_id")
+    site_id = settings.get("secondary_site_id", "101")
+
+    if not principal_id:
+        raise HTTPException(
+            status_code=500,
+            detail="FOLLETT_PRINCIPAL_ID no está configurado en backend/.env"
+        )
+
+    params = {
+        "$search": search,
+        "$top": limit,
+        "includeAvailability": "true"
+    }
+
+    return await follett_get(
+        f"sites/{site_id}/self/{principal_id}/materials/titles",
+        params=params
     )

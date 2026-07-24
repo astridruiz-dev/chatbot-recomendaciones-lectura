@@ -1,5 +1,7 @@
 from difflib import get_close_matches
 
+from sqlalchemy import text
+
 from app.data.mock_books import MOCK_BOOKS
 
 
@@ -24,6 +26,65 @@ def normalize_text(text: str | None) -> str:
 
     return normalized
 
+STOP_WORDS = {
+    "quiero",
+    "libro",
+    "libros",
+    "sobre",
+    "acerca",
+    "de",
+    "del",
+    "la",
+    "el",
+    "los",
+    "las",
+    "un",
+    "una",
+    "unos",
+    "unas",
+    "para",
+    "hacer",
+    "tarea",
+    "trabajo",
+    "investigar",
+    "busco",
+    "buscar",
+    "book",
+    "books",
+    "about",
+    "for",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "to",
+    "of",
+    "on",
+    "school",
+    "assignment",
+    "research"
+}
+
+
+def extract_search_tokens(search: str | None) -> list[str]:
+    if not search:
+        return []
+
+    normalized_search = normalize_text(search)
+
+    raw_tokens = normalized_search.replace(",", " ").replace(".", " ").split()
+
+    tokens = []
+
+    for token in raw_tokens:
+        if token not in STOP_WORDS and len(token) > 2:
+            tokens.append(token)
+
+    return tokens
+
+  
+
 def expand_search_terms(search: str | None) -> list[str]:
     if not search:
         return []
@@ -38,6 +99,7 @@ def expand_search_terms(search: str | None) -> list[str]:
         "fantasia": ["fantasia", "fantasy", "magia", "magic", "dragon", "dragons"],
         "fantasy": ["fantasia", "fantasy", "magia", "magic", "dragon", "dragons"],
         "magia": ["magia", "magic", "fantasia", "fantasy", "dragon", "dragons"],
+        "magic": ["magia", "magic", "fantasia", "fantasy", "dragon", "dragons"],
 
         "misterio": ["misterio", "mystery", "detective", "suspenso", "suspense"],
         "mystery": ["misterio", "mystery", "detective", "suspenso", "suspense"],
@@ -45,11 +107,17 @@ def expand_search_terms(search: str | None) -> list[str]:
         "terror": ["terror", "horror", "suspenso", "suspense", "dark"],
         "horror": ["terror", "horror", "suspenso", "suspense", "dark"],
 
-        "guerra": ["guerra", "war", "world war", "eventos del pasado", "history", "historia"],
-        "war": ["guerra", "war", "world war", "eventos del pasado", "history", "historia"],
+        "guerra": ["guerra", "war", "world war", "eventos del pasado", "history", "historia", "holocaust"],
+        "war": ["guerra", "war", "world war", "eventos del pasado", "history", "historia", "holocaust"],
+        "historia": ["historia", "history", "eventos del pasado", "war", "guerra"],
+        "history": ["historia", "history", "eventos del pasado", "war", "guerra"],
+        "familia": ["familia", "family", "memory", "memoria"],
+        "family": ["familia", "family", "memory", "memoria"],
 
         "amor": ["amor", "emociones", "emotions", "friendship", "amistad", "empathy", "empatia"],
         "amistad": ["amistad", "friendship", "amor", "emociones", "empathy", "empatia"],
+        "friendship": ["amistad", "friendship", "amor", "emociones", "empathy", "empatia"],
+        "empatia": ["empatia", "empathy", "amistad", "friendship", "emociones"],
 
         "aventura": ["aventura", "adventure", "accion", "action", "explorar otros mundos"],
         "adventure": ["aventura", "adventure", "accion", "action", "explorar otros mundos"],
@@ -57,14 +125,29 @@ def expand_search_terms(search: str | None) -> list[str]:
         "deportes": ["deportes", "sports", "competencia", "competition"],
         "sports": ["deportes", "sports", "competencia", "competition"],
 
-        "distopia": ["distopia", "dystopia", "sociedades vigiladas", "controlled society"],
-        "dystopia": ["distopia", "dystopia", "sociedades vigiladas", "controlled society"],
+        "distopia": ["distopia", "dystopia", "sociedades vigiladas", "controlled society", "vigilancia", "reglas"],
+        "dystopia": ["distopia", "dystopia", "sociedades vigiladas", "controlled society", "vigilancia", "reglas"],
+        "vigilancia": ["vigilancia", "surveillance", "sociedades vigiladas", "controlled society"],
+        "surveillance": ["vigilancia", "surveillance", "sociedades vigiladas", "controlled society"],
 
-        "novela grafica": ["novela grafica", "graphic novel", "comic", "novelas graficas"],
-        "graphic": ["graphic", "graphic novel", "comic", "novelas graficas"]
+        "grafica": ["grafica", "graphic", "graphic novel", "comic", "novelas graficas"],
+        "graphic": ["grafica", "graphic", "graphic novel", "comic", "novelas graficas"],
+        "comic": ["comic", "graphic", "graphic novel", "novelas graficas"],
+
+        "salvador": ["salvador", "el salvador", "lrc el salvador collection", "cuentos de barro"],
+        "volcanes": ["volcanes", "volcanoes", "science", "ciencia"],
+        "fotosintesis": ["fotosintesis", "photosynthesis", "science", "ciencia", "plantas"]
     }
 
+    tokens = extract_search_tokens(normalized_search)
+
     expanded_terms = [normalized_search]
+
+    for token in tokens:
+        expanded_terms.append(token)
+
+        if token in synonyms:
+            expanded_terms.extend(synonyms[token])
 
     if normalized_search in synonyms:
         expanded_terms.extend(synonyms[normalized_search])
@@ -162,11 +245,13 @@ def book_matches_search(book: dict, search: str | None) -> bool:
 
     searchable_text = normalize_text(" ".join(searchable_values))
 
-    return any(
-        search_term in searchable_text
+    matches = [
+        search_term
         for search_term in search_terms
-    )
+        if search_term in searchable_text
+    ]
 
+    return len(matches) > 0
 
 def book_matches_grade(book: dict, grade: str | None) -> bool:
     if not grade:
@@ -230,6 +315,27 @@ def calculate_score(
 
     if search and book_matches_search(book, search):
         score += 25
+
+    search_terms = expand_search_terms(search)
+
+    searchable_values = [
+        book.get("title", ""),
+        book.get("author", ""),
+        book.get("language", ""),
+        book.get("sublocation", ""),
+        book.get("summary", ""),
+        " ".join(book.get("categories", []))
+    ]
+
+    searchable_text = normalize_text(" ".join(searchable_values))
+
+    matching_terms = [
+        term
+        for term in search_terms
+        if term in searchable_text
+    ]
+
+    score += min(len(matching_terms) * 5, 20)
 
     if category and book_matches_category(book, category):
         score += 20
@@ -424,3 +530,88 @@ def calculate_book_score(book: dict, filters: dict) -> int:
         score += 15
 
     return score
+
+# moved POPULAR_BOOKS_BY_GRADE out of function
+POPULAR_BOOKS_BY_GRADE = {
+    6: [
+        "The Hobbit",
+        "Coraline",
+        "Wonder",
+        "El principito",
+        "Number the Stars"
+    ],
+    7: [
+        "The Hobbit",
+        "Coraline",
+        "Wonder",
+        "La ciudad de las bestias",
+        "The Giver",
+        "Number the Stars"
+    ],
+    8: [
+        "The Hobbit",
+        "Coraline",
+        "Wonder",
+        "La ciudad de las bestias",
+        "The Giver",
+        "Number the Stars",
+        "Cuentos de barro"
+    ],
+    9: [
+        "La ciudad de las bestias",
+        "The Giver",
+        "Cuentos de barro"
+    ],
+    10: [
+        "Maus",
+        "Frankenstein",
+        "Cuentos de barro",
+        "La ciudad de las bestias"
+    ],
+    11: [
+        "Maus",
+        "Frankenstein",
+        "Cuentos de barro"
+    ],
+    12: [
+        "Maus",
+        "Frankenstein"
+    ]
+}
+
+
+def get_popular_books_by_grade_response(grade: int | None):
+    if not grade:
+        return {
+            "status": "error",
+            "message": "No se recibió un grado válido.",
+            "grade": grade,
+            "count": 0,
+            "recommendations": []
+        }
+
+    popular_titles = POPULAR_BOOKS_BY_GRADE.get(grade, [])
+
+    popular_books = [
+        book
+        for book in MOCK_BOOKS
+        if book.get("title") in popular_titles
+    ]
+
+    ordered_books = sorted(
+        popular_books,
+        key=lambda book: popular_titles.index(book.get("title"))
+    )
+
+    recommendations = [
+        normalize_book_response(book, score=95)
+        for book in ordered_books
+    ]
+
+    return {
+        "status": "ok",
+        "message": "Libros populares por grado consultados correctamente.",
+        "grade": grade,
+        "count": len(recommendations),
+        "recommendations": recommendations
+    }

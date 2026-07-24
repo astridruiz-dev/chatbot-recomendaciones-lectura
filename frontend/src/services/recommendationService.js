@@ -19,3 +19,15 @@ export async function getRecommendations(filters = {}) {
 
   return data
 }
+
+export async function getPopularBooksByGrade(grade) {
+  const response = await fetch(
+    `http://127.0.0.1:8000/api/v1/recommendations/popular-by-grade?grade=${grade}`
+  )
+
+  if (!response.ok) {
+    throw new Error("Error al obtener libros populares por grado")
+  }
+
+  return response.json()
+}
