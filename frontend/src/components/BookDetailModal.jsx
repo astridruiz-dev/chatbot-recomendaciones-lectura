@@ -1,3 +1,5 @@
+import { useState } from "react"
+
 function BookDetailModal({
   book,
   language,
@@ -10,7 +12,7 @@ function BookDetailModal({
   if (!book) return null
 
   const isEnglish = language === "English"
-
+  const [feedbackMessage, setFeedbackMessage] = useState("")
   const publicationYear = book.publicationYear || book.year
   const collection = book.collection || book.sublocation
   const publisher = book.publisher
@@ -33,6 +35,22 @@ function BookDetailModal({
   const handleOpenDestiny = () => {
     window.open(destinyUrl, "_blank", "noopener,noreferrer")
   }
+
+  const handleInterestedClick = () => {
+  if (book.available) {
+    setFeedbackMessage(
+      isEnglish
+        ? `"${book.title}" is available. You can visit the LRC and ask for this book.`
+        : `"${book.title}" está disponible. Puedes pasar al LRC y solicitar este libro.`
+    )
+  } else {
+    setFeedbackMessage(
+      isEnglish
+        ? `"${book.title}" is not available right now. Check again in a few days or keep exploring.`
+        : `"${book.title}" no está disponible por el momento. Consulta nuevamente dentro de algunos días o sigue explorando.`
+    )
+  }
+}
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
@@ -218,10 +236,16 @@ function BookDetailModal({
           </div>
         </div>
 
+            {feedbackMessage && (
+          <div className="mt-6 rounded-2xl bg-violet-100 px-5 py-4 text-sm font-semibold text-indigo-950">
+            {feedbackMessage}
+          </div>
+        )}
+
         <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
   <button
     type="button"
-    onClick={() => onInterested(book)}
+    onClick={handleInterestedClick}
     className="
       rounded-xl
       bg-indigo-950
@@ -297,7 +321,7 @@ function BookDetailModal({
       transition
     "
   >
-    {isEnglish ? "More options" : "Más opciones"}
+    {isEnglish ? "See more books" : "Ver más libros"}
   </button>
 </div>
       </div>
