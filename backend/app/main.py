@@ -12,6 +12,7 @@ from app.routes.recommendations import router as recommendations_router
 from app.routes.chat import router as chat_router
 from app.routes.follett import router as follett_router
 from app.routes.users import router as users_router
+from app.routes.reading_list import router as reading_list_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -61,3 +62,4 @@ app.include_router(recommendations_router, prefix="/api/v1")
 app.include_router(chat_router)
 app.include_router(follett_router, prefix="/api/v1")
 app.include_router(users_router)
+app.include_router(reading_list_router, prefix="/api/v1")

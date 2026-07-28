@@ -14,6 +14,11 @@ import {
   getRecommendations,
   getPopularBooksByGrade
 } from "./services/recommendationService"
+import {
+  getReadingList,
+  addBookToReadingList,
+  removeBookFromReadingList
+} from "./services/readingListService"
 
 function App() {
 
@@ -28,6 +33,7 @@ function App() {
   const [messages, setMessages] = useState([])
   const [profileSelectedBook, setProfileSelectedBook] = useState(null)
   const [recommendationContext, setRecommendationContext] = useState(null)
+  const [profileFocusSection, setProfileFocusSection] = useState(null)
 
 const texts = {
   Spanish: {
@@ -59,6 +65,21 @@ const t = texts[language]
   })
 }, [messages])
 
+useEffect(() => {
+  if (!user?.email) return
+
+  const loadReadingList = async () => {
+    try {
+      const savedBooks = await getReadingList(user.email)
+      setReadingList(savedBooks)
+    } catch (error) {
+      console.error("Error al cargar lista de lectura:", error)
+      setReadingList([])
+    }
+  }
+
+  loadReadingList()
+}, [user?.email])
 
   const userDescription = user?.is_staff
     ? language === "English"
@@ -148,18 +169,57 @@ const handleCloseProfileBookModal = () => {
   setProfileSelectedBook(null)
 }
 
-const handleAddToReadingList = (book) => {
-  setReadingList((prev) => {
-    const alreadySaved = prev.some(
-      (savedBook) => savedBook.id === book.id
+const handleAddToReadingList = async (book) => {
+  if (!user?.email) {
+    console.error("No hay usuario activo para guardar la lista de lectura")
+    return
+  }
+
+
+  const bookId = String(book.id)
+
+  const alreadySaved = readingList.some(
+    (savedBook) => String(savedBook.id) === bookId
+  )
+
+  if (alreadySaved) {
+    return
+  }
+
+  try {
+    const savedBook = await addBookToReadingList(user.email, book)
+
+    setReadingList((prev) => {
+      const existsAfterSave = prev.some(
+        (item) => String(item.id) === String(savedBook.id)
+      )
+
+      if (existsAfterSave) {
+        return prev
+      }
+
+      return [savedBook, ...prev]
+    })
+  } catch (error) {
+    console.error("Error al guardar libro en lista de lectura:", error)
+  }
+}
+
+ const handleRemoveFromReadingList = async (bookId) => {
+  if (!user?.email) {
+    console.error("No hay usuario activo para eliminar de la lista de lectura")
+    return
+  }
+
+  try {
+    await removeBookFromReadingList(user.email, String(bookId))
+
+    setReadingList((prev) =>
+      prev.filter((book) => String(book.id) !== String(bookId))
     )
-
-    if (alreadySaved) {
-      return prev
-    }
-
-    return [...prev, book]
-  })
+  } catch (error) {
+    console.error("Error al eliminar libro de la lista de lectura:", error)
+  }
 }
 
 const handlePopularByGrade = async () => {
@@ -445,6 +505,11 @@ const handleSuggestionClick = async (suggestion) => {
   }
 }
 
+  const handleGoToReadingList = () => {
+  setProfileFocusSection("reading-list")
+  setSelectedRoute("profile")
+}
+
  const handleStartCollectionSearch = async (collectionData) => {
   console.log("Colección o tema seleccionado:", collectionData)
 
@@ -544,7 +609,10 @@ const handleSuggestionClick = async (suggestion) => {
  
          <button
   type="button"
-  onClick={() => setSelectedRoute("profile")}
+  onClick={() => {
+  setProfileFocusSection(null)
+  setSelectedRoute("profile")
+}}
   className="
     bg-indigo-900
     rounded-xl
@@ -628,12 +696,14 @@ const handleSuggestionClick = async (suggestion) => {
       ) : selectedRoute === "profile" ? (
       
         <ProfileView
-          language={language}
-          user={user}
-          readingList={readingList}
-          favoriteCategories={favoriteCategories}
-          onBack={handleBackToMenu}
-          onViewBook={setProfileSelectedBook}
+  language={language}
+  user={user}
+  readingList={readingList}
+  favoriteCategories={favoriteCategories}
+  onBack={handleBackToMenu}
+  onViewBook={setProfileSelectedBook}
+  onRemoveBook={handleRemoveFromReadingList}
+   focusSection={profileFocusSection}
 />
 
     ) : selectedRoute === "recommendations" ? (
@@ -670,6 +740,8 @@ const handleSuggestionClick = async (suggestion) => {
           onSuggestionClick={handleSuggestionClick}
           readingList={readingList}
           onAddToReadingList={handleAddToReadingList}
+          onGoToReadingList={handleGoToReadingList}
+
         />
       ) : (
         <>

@@ -164,11 +164,16 @@ async def get_secondary_lrc_site():
         detail="No se encontró el site de secundaria Academia Britanica Cuscatleca-LRC"
     )
 
-async def search_self_service_titles(search: str = "dragon", limit: int = 10):
+async def search_self_service_titles(
+    search: str = "dragon",
+    limit: int = 10,
+    principal_id_override: str | None = None,
+    site_id_override: str | None = None
+):
     settings = get_follett_settings()
 
-    principal_id = settings.get("principal_id")
-    site_id = settings.get("secondary_site_id", "101")
+    principal_id = principal_id_override or settings.get("principal_id")
+    site_id = site_id_override or settings.get("secondary_site_id", "101")
 
     if not principal_id:
         raise HTTPException(
@@ -179,10 +184,45 @@ async def search_self_service_titles(search: str = "dragon", limit: int = 10):
     params = {
         "$search": search,
         "$top": limit,
-        "includeAvailability": "true"
+        "includeAvailability": "true",
+        "includeAllowedActions": "true",
+        "materialType": "BOOK"
     }
 
     return await follett_get(
         f"sites/{site_id}/self/{principal_id}/materials/titles",
         params=params
     )
+
+async def get_cdl_tenants():
+    return await follett_get("cdl/tenants")
+
+
+async def search_cdl_titles(tenant_id: str, keywords: str = "dragon", max_results: int = 10):
+    params = {
+        "keywords": keywords,
+        "ddSearch": "true",
+        "skipSubjects": "false",
+        "maxResults": max_results
+    }
+
+    return await follett_get(
+        f"cdl/tenants/{tenant_id}/search",
+        params=params
+    )
+
+async def get_follett_patron(patron_id: str):
+    return await follett_get(f"patrons/{patron_id}")
+
+
+async def get_follett_site_patron(site_id: str, patron_id: str):
+    return await follett_get(f"sites/{site_id}/patrons/{patron_id}")
+
+async def get_follett_locations():
+    return await follett_get("locations")
+
+async def get_follett_resources_by_type(resource_type_id: str):
+    return await follett_get(f"materials/resourcetypes/{resource_type_id}/resources")
+
+async def get_follett_patron_circulation_status(patron_id: str):
+    return await follett_get(f"circulation/patrons/{patron_id}/status")

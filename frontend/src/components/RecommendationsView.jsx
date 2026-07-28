@@ -10,7 +10,8 @@ function RecommendationsView({
   onAddToReadingList,
   onBack,
   onMoreOptions,
-  onSuggestionClick
+  onSuggestionClick,
+  onGoToReadingList
 }) {
 
   const isEnglish = language === "English"
@@ -189,15 +190,19 @@ const hasSuggestions = uniqueSuggestions.length > 0
           {description}
         </p>
 
-        <p className="mt-2 text-sm text-indigo-700 font-semibold">
-          {isEnglish
-            ? safeReadingList.length === 1
-              ? "1 book in your reading list"
-              : `${safeReadingList.length} books in your reading list`
-            : safeReadingList.length === 1
-              ? "1 libro en tu lista de lectura"
-              : `${safeReadingList.length} libros en tu lista de lectura`}
-        </p>
+        <button
+  type="button"
+  onClick={onGoToReadingList}
+  className="mt-2 text-sm text-indigo-700 font-semibold hover:text-indigo-950 hover:underline transition"
+>
+  {isEnglish
+    ? safeReadingList.length === 1
+      ? "1 book in your reading list"
+      : `${safeReadingList.length} books in your reading list`
+    : safeReadingList.length === 1
+      ? "1 libro en tu lista de lectura"
+      : `${safeReadingList.length} libros en tu lista de lectura`}
+</button>
       </div>
 
       {statusMessage && (

@@ -1,15 +1,30 @@
+import { useEffect, useRef } from "react"
+
 function ProfileView({
   language,
   user,
   readingList,
   favoriteCategories,
   onBack,
-  onViewBook
+  onViewBook,
+  onRemoveBook,
+  focusSection
 }) {
+  
   const isEnglish = language === "English"
   const isStaff = user?.is_staff
   const safeReadingList = readingList || []
   const safeFavoriteCategories = favoriteCategories || []
+  const readingListSectionRef = useRef(null)
+
+useEffect(() => {
+  if (focusSection === "reading-list" && readingListSectionRef.current) {
+    readingListSectionRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    })
+  }
+}, [focusSection])
 
   const gradeText = isStaff
     ? isEnglish
@@ -20,19 +35,22 @@ function ProfileView({
       : `${user?.grade}.º grado`
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-6 text-sm font-semibold text-indigo-700 hover:text-indigo-950"
-      >
-        ← {isEnglish ? "Back to options" : "Volver a opciones"}
-      </button>
+  <div className="w-full max-w-6xl mx-auto">
+    <div className="mb-4">
+  <button
+    type="button"
+    onClick={onBack}
+    className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-violet-100 hover:text-indigo-950 transition"
+  >
+    <span aria-hidden="true">←</span>
+    {isEnglish ? "Back to main menu" : "Volver al menú principal"}
+  </button>
+</div>
 
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-slate-800">
-          {isEnglish ? "My profile" : "Mi perfil"}
-        </h2>
+    <div className="text-center mb-8">
+      <h2 className="text-3xl font-bold text-slate-800">
+        {isEnglish ? "My profile" : "Mi perfil"}
+      </h2>
 
         <p className="mt-3 text-slate-500">
           {isEnglish
@@ -102,10 +120,13 @@ function ProfileView({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-violet-100 bg-white p-6 shadow-sm">
-        <h3 className="text-xl font-bold text-indigo-950">
-          {isEnglish ? "My reading list" : "Mi lista de lectura"}
-        </h3>
+      <div
+  ref={readingListSectionRef}
+  className="rounded-3xl border border-violet-100 bg-white p-6 shadow-sm"
+>
+  <h3 className="text-xl font-bold text-indigo-950">
+    {isEnglish ? "My reading list" : "Mi lista de lectura"}
+  </h3>
 
         {safeReadingList.length === 0 ? (
           <p className="mt-4 text-slate-500">
@@ -115,49 +136,61 @@ function ProfileView({
           </p>
         ) : (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {safeReadingList.map((book) => (
-              <div
-                key={book.id}
-                className="rounded-2xl border border-violet-100 bg-violet-50 p-5"
-              >
-                <h4 className="text-lg font-bold text-indigo-950">
-                  {book.title}
-                </h4>
+            
+{safeReadingList.map((book) => (
+  <div
+    key={book.id}
+    className="rounded-2xl border border-violet-100 bg-violet-50 p-5"
+  >
+    <h4 className="text-lg font-bold text-indigo-950">
+      {book.title}
+    </h4>
 
-                <p className="mt-1 text-sm text-slate-600">
-                  {book.author}
-                </p>
+    <p className="mt-1 text-sm text-slate-600">
+      {book.author}
+    </p>
 
-                <p className="mt-3 text-sm text-slate-700">
-                  {isEnglish ? "Pages:" : "Páginas:"} {book.pages}
-                </p>
+    <p className="mt-3 text-sm text-slate-700">
+      {isEnglish ? "Pages:" : "Páginas:"} {book.pages}
+    </p>
 
-                {book.sublocation && (
-                  <p className="mt-1 text-sm text-slate-700">
-                    Sublocation del LRC: {book.sublocation}
-                  </p>
-                )}
+    {book.sublocation && (
+      <p className="mt-1 text-sm text-slate-700">
+        Sublocation del LRC: {book.sublocation}
+      </p>
+    )}
 
-                <p className="mt-1 text-sm text-slate-700">
-                  {isEnglish ? "Availability:" : "Disponibilidad:"}{" "}
-                  {book.available
-                    ? isEnglish
-                      ? "Available"
-                      : "Disponible"
-                    : isEnglish
-                      ? "Not available"
-                      : "No disponible"}
-                </p>
+    <p className="mt-1 text-sm text-slate-700">
+      {isEnglish ? "Availability:" : "Disponibilidad:"}{" "}
+      {book.available
+        ? isEnglish
+          ? "Available"
+          : "Disponible"
+        : isEnglish
+          ? "Not available"
+          : "No disponible"}
+    </p>
 
-                <button
-                  type="button"
-                  onClick={() => onViewBook(book)}
-                  className="mt-4 rounded-xl bg-indigo-950 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800 transition"
-                >
-                  {isEnglish ? "View details" : "Ver detalles"}
-                </button>
-              </div>
-            ))}
+    <div className="mt-4 flex flex-wrap gap-3">
+      <button
+        type="button"
+        onClick={() => onViewBook(book)}
+        className="rounded-xl bg-indigo-950 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800 transition"
+      >
+        {isEnglish ? "View details" : "Ver detalles"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onRemoveBook(book.id)}
+        className="rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 transition"
+      >
+        {isEnglish ? "Remove" : "Quitar"}
+      </button>
+    </div>
+  </div>
+))}
+
           </div>
         )}
       </div>
