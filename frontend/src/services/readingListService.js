@@ -1,5 +1,12 @@
 const API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 
+function getAuthHeaders(accessToken) {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${accessToken}`
+  };
+}
+
 function normalizeReadingListItem(item) {
   return {
     id: item.book_id,
@@ -31,9 +38,12 @@ function normalizeReadingListItem(item) {
   };
 }
 
-export async function getReadingList(userEmail) {
+export async function getReadingList(accessToken) {
   const response = await fetch(
-    `${API_BASE_URL}/reading-list/${encodeURIComponent(userEmail)}`
+    `${API_BASE_URL}/reading-list/`,
+    {
+      headers: getAuthHeaders(accessToken)
+    }
   );
 
   if (!response.ok) {
@@ -45,9 +55,8 @@ export async function getReadingList(userEmail) {
   return data.map(normalizeReadingListItem);
 }
 
-export async function addBookToReadingList(userEmail, book) {
+export async function addBookToReadingList(accessToken, book) {
   const payload = {
-    user_email: userEmail,
     book_id: String(book.id),
     title: book.title,
     author: book.author || null,
@@ -66,9 +75,7 @@ export async function addBookToReadingList(userEmail, book) {
 
   const response = await fetch(`${API_BASE_URL}/reading-list/`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: getAuthHeaders(accessToken),
     body: JSON.stringify(payload)
   });
 
@@ -81,11 +88,12 @@ export async function addBookToReadingList(userEmail, book) {
   return normalizeReadingListItem(data);
 }
 
-export async function removeBookFromReadingList(userEmail, bookId) {
+export async function removeBookFromReadingList(accessToken, bookId) {
   const response = await fetch(
-    `${API_BASE_URL}/reading-list/${encodeURIComponent(userEmail)}/${encodeURIComponent(bookId)}`,
+    `${API_BASE_URL}/reading-list/${encodeURIComponent(bookId)}`,
     {
-      method: "DELETE"
+      method: "DELETE",
+      headers: getAuthHeaders(accessToken)
     }
   );
 

@@ -12,12 +12,12 @@ function LoginScreen({ onLogin }) {
     setLoading(true)
 
     try {
-      const user = await googleLogin(
-        credentialResponse.credential,
-        language
-      )
+      const loginResponse = await googleLogin(
+  credentialResponse.credential,
+  language
+)
 
-      onLogin(user)
+onLogin(loginResponse.user, loginResponse.access_token)
     } catch (err) {
       setError(err.message)
     } finally {

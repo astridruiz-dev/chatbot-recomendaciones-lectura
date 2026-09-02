@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 class ReadingListItemCreate(BaseModel):
-    user_email: str
+    user_email: str | None = None
 
     book_id: str
     title: str

@@ -45,12 +45,12 @@ function BookCard({ book, language, onViewDetails }) {
           )}
 
           {collection && (
-            <p>
+           <p>
               <span className="font-semibold">
-                {isEnglish ? "Collection:" : "Colección:"}
+                {isEnglish ? "LRC sublocation:" : "Sublocation del LRC:"}
               </span>{" "}
-              {collection}
-            </p>
+              {book.sublocation || book.collection || "N/A"}
+          </p>
           )}
 
           {book.callNumber && (

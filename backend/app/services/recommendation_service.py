@@ -373,7 +373,11 @@ def normalize_book_response(book: dict, score: int) -> dict:
         "callNumber": book.get("callNumber"),
         "isbn": book.get("isbn"),
         "summary": book.get("summary"),
+        "summaryEs": book.get("summaryEs"),
+        "summaryEn": book.get("summaryEn"),
         "coverEmoji": book.get("coverEmoji", "📚"),
+        "status": book.get("status"),
+        "destinyUrl": book.get("destinyUrl"),
         "score": score
     }
 

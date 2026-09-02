@@ -23,6 +23,7 @@ import {
 function App() {
 
   const [user, setUser] = useState(null)
+  const [accessToken, setAccessToken] = useState(null)
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [selectedRoute, setSelectedRoute] = useState(null)
@@ -65,12 +66,13 @@ const t = texts[language]
   })
 }, [messages])
 
-useEffect(() => {
-  if (!user?.email) return
-
   const loadReadingList = async () => {
+     if (!accessToken) {
+    setReadingList([])
+    return
+  }
     try {
-      const savedBooks = await getReadingList(user.email)
+      const savedBooks = await getReadingList(accessToken)
       setReadingList(savedBooks)
     } catch (error) {
       console.error("Error al cargar lista de lectura:", error)
@@ -78,8 +80,13 @@ useEffect(() => {
     }
   }
 
-  loadReadingList()
-}, [user?.email])
+  useEffect(() => {
+  if (accessToken) {
+    loadReadingList()
+  } else {
+    setReadingList([])
+  }
+}, [accessToken])
 
   const userDescription = user?.is_staff
     ? language === "English"
@@ -150,12 +157,11 @@ useEffect(() => {
 
   }
 
-      const handleLogin = (loggedUser) => {
-        setUser(loggedUser)
-      setLanguage(loggedUser.language || "Spanish")
-
-      
-  }
+    const handleLogin = (loggedUser, token) => {
+  setUser(loggedUser)
+  setAccessToken(token)
+  setLanguage(loggedUser.language || "Spanish")
+}
       const handleSelectRoute = (routeId) => {
   if (routeId === "popular-grade") {
     handlePopularByGrade()
@@ -170,10 +176,10 @@ const handleCloseProfileBookModal = () => {
 }
 
 const handleAddToReadingList = async (book) => {
-  if (!user?.email) {
-    console.error("No hay usuario activo para guardar la lista de lectura")
-    return
-  }
+ if (!accessToken) {
+  console.error("No hay token activo para guardar la lista de lectura")
+  return
+}
 
 
   const bookId = String(book.id)
@@ -187,7 +193,7 @@ const handleAddToReadingList = async (book) => {
   }
 
   try {
-    const savedBook = await addBookToReadingList(user.email, book)
+    const savedBook = await addBookToReadingList(accessToken, book)
 
     setReadingList((prev) => {
       const existsAfterSave = prev.some(
@@ -206,13 +212,13 @@ const handleAddToReadingList = async (book) => {
 }
 
  const handleRemoveFromReadingList = async (bookId) => {
-  if (!user?.email) {
-    console.error("No hay usuario activo para eliminar de la lista de lectura")
-    return
-  }
+  if (!accessToken) {
+  console.error("No hay token activo para eliminar de la lista de lectura")
+  return
+}
 
   try {
-    await removeBookFromReadingList(user.email, String(bookId))
+    await removeBookFromReadingList(accessToken, String(bookId))
 
     setReadingList((prev) =>
       prev.filter((book) => String(book.id) !== String(bookId))
@@ -355,6 +361,18 @@ const handlePopularByGrade = async () => {
 
 const handleBackToMenu = () => {
   setSelectedRoute(null)
+}
+
+const handleLogout = () => {
+  setUser(null)
+  setAccessToken(null)
+  setReadingList([])
+  setSelectedRoute(null)
+  setSelectedBook(null)
+  setProfileSelectedBook(null)
+  setProfileFocusSection(null)
+  setFavoriteCategories([])
+  setRecentInterest(null)
 }
 
 const handleStartSurprise = async (surpriseType) => {
@@ -704,6 +722,7 @@ const handleSuggestionClick = async (suggestion) => {
   onViewBook={setProfileSelectedBook}
   onRemoveBook={handleRemoveFromReadingList}
    focusSection={profileFocusSection}
+   onLogout={handleLogout}
 />
 
     ) : selectedRoute === "recommendations" ? (

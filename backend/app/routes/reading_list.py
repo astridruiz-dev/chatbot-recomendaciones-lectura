@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models.reading_list import ReadingListItem
+from app.core.security import get_current_user_payload
 from app.schemas.reading_list import (
     ReadingListItemCreate,
     ReadingListItemResponse
@@ -23,6 +24,24 @@ def get_db():
     finally:
         db.close()
 
+@router.get(
+    "/",
+    response_model=list[ReadingListItemResponse]
+)
+def get_my_reading_list(
+    current_user: dict = Depends(get_current_user_payload),
+    db: Session = Depends(get_db)
+):
+    user_email = current_user["sub"]
+
+    items = (
+        db.query(ReadingListItem)
+        .filter(ReadingListItem.user_email == user_email)
+        .order_by(ReadingListItem.added_at.desc())
+        .all()
+    )
+
+    return items
 
 @router.get(
     "/{user_email}",
@@ -48,12 +67,15 @@ def get_reading_list(
 )
 def add_book_to_reading_list(
     item: ReadingListItemCreate,
+    current_user: dict = Depends(get_current_user_payload),
     db: Session = Depends(get_db)
 ):
+    user_email = current_user["sub"]
+
     existing_item = (
         db.query(ReadingListItem)
         .filter(
-            ReadingListItem.user_email == item.user_email,
+            ReadingListItem.user_email == user_email,
             ReadingListItem.book_id == item.book_id
         )
         .first()
@@ -63,7 +85,7 @@ def add_book_to_reading_list(
         return existing_item
 
     new_item = ReadingListItem(
-        user_email=item.user_email,
+       user_email=user_email,
         book_id=item.book_id,
         title=item.title,
         author=item.author,
@@ -86,6 +108,39 @@ def add_book_to_reading_list(
 
     return new_item
 
+@router.delete(
+    "/{book_id}"
+)
+def remove_my_book_from_reading_list(
+    book_id: str,
+    current_user: dict = Depends(get_current_user_payload),
+    db: Session = Depends(get_db)
+):
+    user_email = current_user["sub"]
+
+    item = (
+        db.query(ReadingListItem)
+        .filter(
+            ReadingListItem.user_email == user_email,
+            ReadingListItem.book_id == book_id
+        )
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="El libro no está en la lista de lectura del usuario"
+        )
+
+    db.delete(item)
+    db.commit()
+
+    return {
+        "status": "ok",
+        "message": "Libro eliminado de la lista de lectura",
+        "book_id": book_id
+    }
 
 @router.delete(
     "/{user_email}/{book_id}"

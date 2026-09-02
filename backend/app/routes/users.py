@@ -8,6 +8,7 @@ from app.core.database import SessionLocal
 from app.services.user_utils import extract_graduation_year
 from app.services.user_utils import calculate_grade
 from app.services.google_auth_service import verify_google_token
+from app.core.security import create_access_token
 
 
 router = APIRouter(
@@ -128,11 +129,25 @@ def google_login(login_data: GoogleLoginRequest):
             login_data.credential
         )
 
-        return save_or_update_user(
+        user = save_or_update_user(
             db,
             email,
             login_data.language
         )
+
+        access_token = create_access_token(
+            data={
+                "sub": user["email"],
+                "is_staff": user["is_staff"],
+                "grade": user["grade"]
+            }
+        )
+
+        return {
+            "user": user,
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
 
     finally:
         db.close()

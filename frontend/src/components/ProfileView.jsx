@@ -8,7 +8,8 @@ function ProfileView({
   onBack,
   onViewBook,
   onRemoveBook,
-  focusSection
+  focusSection,
+  onLogout
 }) {
   
   const isEnglish = language === "English"
@@ -45,7 +46,15 @@ useEffect(() => {
     <span aria-hidden="true">←</span>
     {isEnglish ? "Back to main menu" : "Volver al menú principal"}
   </button>
-</div>
+
+
+<button
+  type="button"
+  onClick={onLogout}
+  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 transition"
+>
+  {isEnglish ? "Log out" : "Cerrar sesión"}
+</button>
 
     <div className="text-center mb-8">
       <h2 className="text-3xl font-bold text-slate-800">
@@ -194,6 +203,7 @@ useEffect(() => {
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }
