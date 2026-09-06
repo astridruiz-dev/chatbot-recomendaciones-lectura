@@ -1,3 +1,6 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,6 +17,17 @@ from app.routes.follett import router as follett_router
 from app.routes.users import router as users_router
 from app.routes.reading_list import router as reading_list_router
 
+load_dotenv()
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "FRONTEND_URLS",
+        "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+
 Base.metadata.create_all(bind=engine)
 
 # Crear aplicación
@@ -26,9 +40,7 @@ app = FastAPI(
 # Configuración CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

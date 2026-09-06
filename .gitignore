@@ -223,5 +223,6 @@ backend/library_chatbot.db
 .env.*
 backend/.env
 backend/.env.*
+!backend/.env.example
 backend/library_chatbot.db
 frontend/.env

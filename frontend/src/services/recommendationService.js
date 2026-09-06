@@ -1,4 +1,5 @@
-const API_URL = "http://127.0.0.1:8000/api/v1/recommendations/"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
+const API_URL = `${API_BASE_URL}/api/v1/recommendations/`
 
 export async function getRecommendations(filters = {}) {
   const params = new URLSearchParams()
@@ -22,7 +23,7 @@ export async function getRecommendations(filters = {}) {
 
 export async function getPopularBooksByGrade(grade) {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/v1/recommendations/popular-by-grade?grade=${grade}`
+    `${API_BASE_URL}/api/v1/recommendations/popular-by-grade?grade=${grade}`
   )
 
   if (!response.ok) {
